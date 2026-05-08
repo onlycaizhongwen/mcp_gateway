@@ -1,0 +1,165 @@
+# v1-mcp-gateway-nacos-discovery 技术设计过程
+
+## 恢复胶囊
+
+- 任务需求：在明源云 AI 升级项目中，基于 MCP 协议构建工具层，统一封装知识库、审批、文档等 Tool；规划 MCP 网关设计，使 MCP Server 自动注册到 Nacos，由 MCP 网关发现并调度。
+- 关键决策：采用 Nacos 作为 MCP Server 服务发现与元数据注册中心；MCP 网关承担发现、工具目录聚合、路由调度、健康治理、权限审计和协议适配。
+- 当前阶段：技术设计已完成。
+- 已完成产物：requirements 与 design 文档、HTML 设计文档、UML Mermaid 源码、UML SVG 图片、status.md 回写。
+- 剩余工作：后续可进入计划阶段，拆分实施步骤与验证项。
+- 重要发现：仓库目前仅有项目规则与 v1 文档骨架，无已有业务代码。
+
+## 步骤列表
+
+- [v] 检查项目规则、状态文件和任务记录。
+- [v] 输出 requirements 与 design 文档。
+  - 当前产物：docs/codex/v1/requirements/mcp-gateway-nacos-discovery-requirements.md、docs/codex/v1/designs/mcp-gateway-nacos-discovery-design.md
+  - 下一步：已完成 status.md 回写和自检。
+  - 涉及文件：docs/codex/v1/status.md、.codex/plans/main/TASKS.md
+- [v] 完成状态回写与任务收尾。
+- [v] 按用户要求补充 UML 图。
+  - 当前产物：docs/codex/v1/designs/mcp-gateway-nacos-discovery-design.md
+  - 涉及内容：组件图、部署图、注册发现时序图、工具调用时序图、核心类图。
+- [v] 补充可直接查看的 SVG 图片版。
+  - 当前产物：docs/codex/v1/designs/uml/*.svg
+  - 说明：解决当前查看器不渲染 Mermaid 导致看不到图的问题。
+- [v] 补充 HTML 格式设计文档。
+  - 当前产物：docs/codex/v1/designs/mcp-gateway-nacos-discovery-design.html
+  - 说明：直接浏览设计内容和 UML SVG 图片，不依赖 Markdown 或 Mermaid 渲染。
+- [v] 优化组件图和部署图连线。
+  - 当前产物：docs/codex/v1/designs/uml/component-diagram.svg、docs/codex/v1/designs/uml/deployment-diagram.svg
+  - 说明：分离注册、订阅和调用路径，减少箭头重叠。
+- [v] 重绘组件图并补充文字说明。
+  - 当前产物：docs/codex/v1/designs/uml/component-diagram.svg、docs/codex/v1/designs/mcp-gateway-nacos-discovery-design.html、docs/codex/v1/designs/mcp-gateway-nacos-discovery-design.md
+  - 说明：将组件图调整为分层架构风格，增加链路颜色图例和模块职责说明。
+- [v] 修正 MCP Server 调用链路表达。
+  - 当前产物：docs/codex/v1/designs/uml/component-diagram.svg
+  - 说明：将三条调用线合并为 MCP Server 集群入口，再由路由选择单个目标实例。
+- [v] 简化组件图主链路。
+  - 当前产物：docs/codex/v1/designs/uml/component-diagram.svg
+  - 说明：移除实例级调用分支，只保留调用、发现、注册三条主链路，避免图面混乱。
+- [v] 检查并修正组件图语义。
+  - 当前产物：docs/codex/v1/designs/uml/component-diagram.svg
+  - 说明：移除 Nacos Discovery 直连 Router 的误导关系，改为 Discovery 刷新 Tool Catalog，Router 查询 Tool Catalog。
+- [v] 收敛 Gateway 内部连线。
+  - 当前产物：docs/codex/v1/designs/uml/component-diagram.svg
+  - 说明：移除绕线路径，保留更直观的内部模块依赖。
+- [v] 微调组件图标签和折线。
+  - 当前产物：docs/codex/v1/designs/uml/component-diagram.svg
+  - 说明：调整“刷新目录”“发现服务”“工具调用”“注册/心跳”标注位置，让连线更规整。
+- [v] 重绘部署图并补充说明。
+  - 当前产物：docs/codex/v1/designs/uml/deployment-diagram.svg、docs/codex/v1/designs/mcp-gateway-nacos-discovery-design.html、docs/codex/v1/designs/mcp-gateway-nacos-discovery-design.md
+  - 说明：简化实例级连线，按业务调用、服务订阅、注册心跳三类主链路表达部署关系。
+- [v] 修订待确认项补充方案。
+  - 当前产物：docs/codex/v1/designs/MCP工具集成平台技术方案.md
+  - 说明：对齐主设计待确认项，修复日期、SDK 版本策略、传输协议、HTTP 适配边界、工具命名、权限密钥、幂等和异步响应等问题。
+- [v] 输出执行计划。
+  - 当前产物：docs/codex/v1/plans/mcp-gateway-nacos-discovery-plan.md
+  - 说明：拆分 MCP Gateway MVP 的编码顺序、验证项、风险和编码前确认点。
+- [v] Python/FastAPI MVP 实现。
+  - 当前产物：pyproject.toml、README.md、src/mcp_gateway/**、tests/**。
+  - 结果：已完成工程骨架、核心模型、mock discovery、metadata parser、Tool Catalog、Router、HTTP API、knowledge.search mock 和测试。
+  - 验证：`python -m pytest` 通过，7 passed。
+- [v] 权限配置加载实现。
+  - 当前产物：config/mcp-gateway.yaml、src/mcp_gateway/config/**、tests/test_config_policy.py。
+  - 结果：将 app/tool/tenant 权限从硬编码改为 YAML 配置加载，支持 `MCP_GATEWAY_CONFIG` 指定配置文件。
+- [v] 工具 schema 查询与基础校验。
+  - 当前产物：src/mcp_gateway/schema/**、src/mcp_gateway/examples/sample_schemas.py、tests/test_schema_registry.py。
+  - 结果：新增 `GET /api/v1/tools/{toolName}/schema`，并在工具调用前基于 inputSchema 校验必填参数。
+- [v] Nacos Discovery adapter 骨架。
+  - 当前产物：src/mcp_gateway/discovery/nacos_discovery.py、src/mcp_gateway/discovery/factory.py、tests/test_nacos_discovery.py。
+  - 结果：支持通过配置开启 Nacos OpenAPI discovery，默认仍使用 mock discovery。
+- [v] Streamable HTTP MCP Client adapter 骨架。
+  - 当前产物：src/mcp_gateway/client/streamable_http_client.py、src/mcp_gateway/client/factory.py、tests/test_streamable_http_client.py。
+  - 结果：支持配置开启 Streamable HTTP client，向选中 MCP Server endpoint 发送 JSON-RPC `tools/call` 请求，默认仍使用 mock client。
+- [v] 最小审计日志。
+  - 当前产物：src/mcp_gateway/observability/audit.py、tests/test_audit.py。
+  - 结果：工具调用记录 app、tenant、tool、route、耗时和结果码，仅记录参数 key，不记录参数值。
+- [v] Catalog 管理接口。
+  - 当前产物：src/mcp_gateway/runtime.py、src/mcp_gateway/api/admin.py、tests/test_admin_api.py。
+  - 结果：新增 `GET /api/v1/admin/catalog/status` 和 `POST /api/v1/admin/catalog/refresh`，支持手动重拉 Discovery 并刷新 Catalog。
+- [v] Admin 权限保护。
+  - 当前产物：src/mcp_gateway/policy/admin_authorizer.py、tests/test_admin_authorizer.py。
+  - 结果：通过 `admin.allowed_app_ids` 配置和 `x-app-id` header 控制 admin 接口访问。
+- [v] 最小内存熔断。
+  - 当前产物：src/mcp_gateway/routing/circuit_breaker.py、src/mcp_gateway/routing/router_scheduler.py、tests/test_circuit_breaker.py。
+  - 结果：按 MCP Server 实例统计下游失败，达到阈值后路由跳过该实例，恢复窗口后允许半开试探；通过 `circuit_breaker` YAML 配置控制。
+  - 验证：`python -m pytest` 通过，29 passed。
+- [v] 规划下一阶段实施顺序。
+  - 当前产物：docs/codex/v1/plans/mcp-gateway-nacos-discovery-plan.md、docs/codex/v1/status.md。
+  - 结果：补充阶段 8 到阶段 11，建议优先实现基础限流，再推进主动健康检查、真实 Nacos 联调和审批/文档 Tool 演示链路。
+- [v] 基础限流与调用保护。
+  - 当前产物：src/mcp_gateway/policy/rate_limiter.py、src/mcp_gateway/api/tools.py、tests/test_rate_limiter.py、docs/codex/v1/plans/mcp-gateway-nacos-discovery-plan.md。
+  - 结果：按 `app_id + tenant_id + tool_name` 维度执行 token bucket 限流，读取 `permissions.apps[].rate_limit` 配置，超过限制返回 `MCP_RATE_LIMITED`/429 并写入审计结果。
+  - 验证：`python -m pytest` 通过，35 passed。
+- [v] 主动健康检查与 Catalog 状态增强。
+  - 当前产物：src/mcp_gateway/health/health_checker.py、src/mcp_gateway/health/factory.py、src/mcp_gateway/runtime.py、src/mcp_gateway/api/admin.py、tests/test_health_checker.py。
+  - 结果：Catalog refresh 可选执行 MCP Server `healthPath` 探活，探活失败实例不进入可路由 provider；Admin status 暴露实例数、健康实例数和不可用实例数。
+  - 验证：`python -m pytest` 通过，38 passed。
+- [v] 真实 Nacos 联调准备。
+  - 当前产物：src/mcp_gateway/runtime.py、src/mcp_gateway/discovery/nacos_discovery.py、docs/codex/v1/designs/mcp-gateway-nacos-integration-guide.md、docs/codex/v1/designs/mcp-server-nacos-registration-template.json、tests/test_runtime_snapshot.py。
+  - 结果：新增 Discovery 失败保留最后一次 Catalog 快照策略、非法 metadata 跳过日志、Nacos 联调说明和 MCP Server 注册 metadata 模板。
+  - 验证：`python -m pytest` 通过，41 passed。
+- [v] 演示工具扩展。
+  - 当前产物：src/mcp_gateway/examples/sample_metadata.py、src/mcp_gateway/examples/sample_schemas.py、src/mcp_gateway/client/mock_mcp_client.py、config/mcp-gateway.yaml、tests/test_api.py。
+  - 结果：新增 `approval.create_task` 和 `document.generate` 的 mock metadata、schema、权限配置、client 响应和 API 测试。
+  - 验证：`python -m pytest` 通过，47 passed。
+- [v] Trace 审查。
+  - 当前产物：docs/codex/v1/trace/mcp-gateway-nacos-discovery-trace.md、docs/codex/v1/status.md。
+  - 结果：对照 requirements、design、plan 和实现结果完成一致性审查，确认 MVP 核心链路已闭环，记录真实 Nacos/MCP Server 联调和生产级治理待办。
+- [v] 可选定时 Catalog 刷新。
+  - 当前产物：src/mcp_gateway/runtime.py、src/mcp_gateway/main.py、src/mcp_gateway/config/gateway_config.py、config/mcp-gateway.yaml、tests/test_runtime_snapshot.py。
+  - 结果：新增 `catalog_refresh.enabled` 与 `interval_seconds` 配置，Gateway 可后台周期性调用 Discovery 刷新 Catalog，shutdown 时通过 lifespan 停止后台线程。
+  - 验证：`python -m pytest` 通过，49 passed。
+- [v] MCP Server 注册示例。
+  - 当前产物：src/mcp_gateway/examples/nacos_registration.py、examples/register_mcp_server_to_nacos.py、tests/test_nacos_registration.py、docs/codex/v1/designs/mcp-gateway-nacos-integration-guide.md。
+  - 结果：新增可复用 Nacos 注册 helper 和命令行示例，支持注册/注销示例 MCP Server，支持 Nacos username/password 获取 accessToken。
+  - 验证：`python -m pytest` 通过，52 passed。
+- [v] 交付说明文档。
+  - 当前产物：docs/codex/v1/delivery/mcp-gateway-mvp-delivery.md、docs/codex/v1/status.md。
+  - 结果：明确交付定位、交付内容、运行方式、验证结果、对外交付口径、已知限制和待完成事项。
+
+## 研究发现
+
+- 主题处于方案设计阶段，暂不涉及代码实现。
+- 需求中明确的核心链路是 MCP Server 自动注册到 Nacos，MCP 网关通过 Nacos 发现服务并完成工具注册、发现和调度。
+- UML 图采用 Mermaid 语法，便于 Markdown 文档平台直接渲染。
+- 当前查看器可能不支持 Mermaid，已补充 SVG 图片并在设计文档中引用。
+- 用户需要可视化查看，已新增独立 HTML 页面，适合直接在浏览器打开。
+- 用户反馈组件图和部署图箭头重叠，已重新布局两张 SVG。
+- 用户反馈组件图观感不足且需要配套文字说明，已重绘组件图并补充说明。
+- 用户指出 MCP Server 调用线应合一，已改为集群入口加路由选择说明。
+- 用户进一步反馈组件图线条仍偏乱，已简化为组件关系图，实例选择细节不在组件图展开。
+- 本轮检查发现 Discovery 到 Router 的关系容易误导，已修正为 Discovery 到 Catalog、Catalog 到 Router。
+- 最后检查时发现 Router 到 MCP Client 的绕线不够清晰，已改成直接纵向依赖。
+- 用户指出部分标签和连线不工整，已微调标注位置与折线对齐。
+- 用户要求同样优化部署图，已重绘为主链路部署拓扑并补充文字说明。
+- 用户要求修复补充方案文档，已将其改为待确认项答复版并补齐落地决策建议。
+- 用户要求继续推进，已进入计划阶段并输出 MVP 执行计划。
+- 用户确认不要 Node，改用 Python/FastAPI 实现 MCP Gateway MVP。
+- Python/FastAPI 首版 MVP 已实现并通过测试；真实 Nacos 和真实 Streamable HTTP MCP Client 仍待后续接入。
+- 权限配置已从硬编码迁移到 YAML，后续可接 Nacos Config 或权限中心。
+- 工具 schema 当前使用内存 registry，后续可替换为 Nacos Config 或独立元数据服务。
+- Nacos Discovery 已有适配骨架，待真实 endpoint、namespace、鉴权和 metadata 形态确认后做联调。
+- Streamable HTTP MCP Client 已有最小适配骨架，待 SDK 版本锁定后可替换为官方 SDK adapter。
+- 最小审计日志已接入工具调用链路，后续可替换为日志平台、ES 或审计中心。
+- Catalog 刷新已从启动时一次性动作抽为 GatewayRuntime，可通过管理接口主动刷新。
+- Admin 接口已加最小权限保护，后续可替换为统一认证网关或正式鉴权中间件。
+- 最小熔断已接入路由和工具调用反馈链路；当前为进程内状态，后续多副本部署时需接入共享状态或依赖指标系统做实例级隔离。
+- 下一阶段建议先实现基础限流，因为现有配置中已经有 `rate_limit`，且不依赖真实 Nacos 环境，能较快补齐调用治理闭环。
+- 基础限流已实现，当前为进程内 token bucket；多副本部署时需要升级为 Redis、网关层或服务网格层的分布式限流。
+- 下一阶段建议推进主动健康检查与 Catalog 状态增强，补齐实例健康可观测能力。
+- 主动健康检查已实现且默认关闭，避免本地 mock 模式误探真实端口；测试环境接入真实 MCP Server 后可开启。
+- 下一阶段建议推进真实 Nacos 联调准备，重点补失败保留快照、注册 metadata 模板和联调说明。
+- 真实 Nacos 联调准备已完成；如果 Nacos 短暂不可用，Gateway 会保留上一次成功 Catalog，首次启动失败仍抛错，避免空目录静默运行。
+- 下一阶段建议扩展 `approval.create_task` 和 `document.generate` 两个演示工具，补齐知识库、审批、文档三类 Tool 的端到端示例。
+- 演示工具扩展已完成，当前 mock discovery 会暴露知识库、审批、文档三类 Tool。
+- 主要实现与验证已完成，下一阶段建议按项目规则进入 trace 审查，核对需求、设计、计划、实现是否一致。
+- Trace 审查已完成，未发现阻塞 MVP 交付的问题；剩余风险集中在真实环境联调、watch/定时刷新、分布式治理和真实业务系统接入。
+- 已补齐可选定时刷新能力，当前仍未实现 Nacos watch 推送；测试环境可先用周期 refresh 完成动态发现验证。
+- 已补齐 MCP Server 注册示例，后续业务 MCP Server 可复用 helper 或照命令行示例实现自注册。
+- 已输出交付说明文档，可作为对外提供 MVP / 联调样例版时的说明材料。
+
+## 错误记录
+
+- 暂无。

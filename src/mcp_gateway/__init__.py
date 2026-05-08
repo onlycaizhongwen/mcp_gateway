@@ -1,0 +1,1 @@
+"""MCP Gateway MVP package."""

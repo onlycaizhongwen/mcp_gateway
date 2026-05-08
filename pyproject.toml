@@ -1,0 +1,24 @@
+[project]
+name = "mcp-gateway"
+version = "0.1.0"
+description = "MCP Gateway MVP with mock Nacos discovery and tool routing"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.115.6",
+  "uvicorn[standard]==0.34.0",
+  "pydantic==2.10.4"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.3.4",
+  "httpx==0.28.1"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

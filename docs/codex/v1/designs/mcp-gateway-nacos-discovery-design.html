@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCP 网关 Nacos 服务发现设计</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --surface: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d9e2ef;
+      --brand: #0f766e;
+      --brand-soft: #dff7f3;
+      --accent: #8a4b16;
+      --code: #102033;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font: 15px/1.72 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      background: #101828;
+      color: #f8fafc;
+      overflow: auto;
+    }
+
+    aside h2 {
+      margin: 0 0 10px;
+      font-size: 19px;
+      line-height: 1.35;
+    }
+
+    aside p {
+      margin: 0 0 22px;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+
+    nav a {
+      display: block;
+      margin: 4px 0;
+      padding: 8px 10px;
+      border-radius: 7px;
+      color: #e5e7eb;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    nav a:hover {
+      background: #1f2937;
+      color: #fff;
+    }
+
+    main {
+      max-width: 1160px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 42px 38px 80px;
+    }
+
+    header {
+      padding: 34px 36px;
+      margin-bottom: 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 32px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 34px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      font-size: 24px;
+      line-height: 1.35;
+    }
+
+    h3 {
+      margin: 26px 0 12px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 10px 0;
+    }
+
+    section {
+      padding: 26px 32px;
+      margin-top: 18px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    ul,
+    ol {
+      margin-top: 8px;
+      padding-left: 24px;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef6f5;
+      color: #183b38;
+      font-weight: 700;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: #eef2f7;
+      color: #172033;
+      font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      margin: 14px 0;
+      padding: 16px 18px;
+      overflow: auto;
+      border-radius: 8px;
+      background: var(--code);
+      color: #e6edf7;
+      font: 13px/1.6 Consolas, "SFMono-Regular", Menlo, monospace;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      font-size: inherit;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .summary div {
+      padding: 14px;
+      border: 1px solid #b7e2dc;
+      border-radius: 8px;
+      background: var(--brand-soft);
+    }
+
+    .summary strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #0f514b;
+    }
+
+    .diagram {
+      margin: 16px 0 26px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .diagram img {
+      display: block;
+      width: 100%;
+      max-height: 680px;
+      object-fit: contain;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .diagram a {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--brand);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #fff3d6;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .note {
+      padding: 12px 14px;
+      border-left: 4px solid var(--brand);
+      background: #f0fdfa;
+      color: #134e4a;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        display: block;
+      }
+
+      aside {
+        position: static;
+        height: auto;
+      }
+
+      main {
+        padding: 24px 16px 60px;
+      }
+
+      header,
+      section {
+        padding: 22px 18px;
+      }
+
+      .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <h2>MCP 网关设计</h2>
+      <p>HTML 可视化版本，包含架构、UML、模块、流程和风险说明。</p>
+      <nav>
+        <a href="#overview">背景与目标</a>
+        <a href="#architecture">总体架构</a>
+        <a href="#uml">UML 视图</a>
+        <a href="#modules">模块设计</a>
+        <a href="#metadata">Nacos 元数据</a>
+        <a href="#flows">核心流程</a>
+        <a href="#objects">关键数据对象</a>
+        <a href="#ha">高可用与异常</a>
+        <a href="#config">配置建议</a>
+        <a href="#roadmap">兼容与演进</a>
+        <a href="#risks">风险与待确认</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header id="overview">
+        <span class="tag">v1 / 技术设计</span>
+        <h1>MCP 网关 Nacos 服务发现设计</h1>
+        <p>明源云 AI 升级项目需要建设统一工具层，将知识库、审批、文档等能力封装为 MCP Tool。为避免工具服务静态配置、发布耦合和治理分散，本方案设计 MCP Server 自动注册到 Nacos，由 MCP 网关动态发现、聚合工具目录并统一调度。</p>
+        <div class="summary">
+          <div><strong>注册中心</strong>Nacos 承载服务实例和工具元数据。</div>
+          <div><strong>统一入口</strong>MCP Gateway 暴露工具发现和调用入口。</div>
+          <div><strong>动态发现</strong>服务上下线和元数据变化无需重启网关。</div>
+          <div><strong>集中治理</strong>鉴权、限流、审计、Trace、熔断统一处理。</div>
+        </div>
+      </header>
+
+      <section>
+        <h2>设计目标</h2>
+        <ul>
+          <li>MCP Server 自注册、自描述、自健康上报。</li>
+          <li>MCP 网关动态发现工具服务，无需重启即可感知上下线。</li>
+          <li>对上游 AI 应用暴露稳定的工具发现和调用入口。</li>
+          <li>对下游 MCP Server 提供统一治理，包括鉴权、限流、审计、观测、熔断和灰度。</li>
+        </ul>
+      </section>
+
+      <section id="architecture">
+        <h2>总体架构</h2>
+        <pre><code>AI 应用 / Agent 平台
+        |
+        | MCP Tool List / Call
+        v
+MCP Gateway
+  |-- 接入鉴权与租户上下文
+  |-- Tool Catalog 聚合缓存
+  |-- Nacos Discovery 监听
+  |-- Router / Scheduler 调度
+  |-- Policy / RateLimit / Audit
+  |-- Metrics / Trace / Log
+        |
+        | MCP over HTTP/SSE 或 Streamable HTTP
+        v
+MCP Server 集群
+  |-- knowledge-base-mcp-server
+  |-- approval-mcp-server
+  |-- document-mcp-server
+        |
+        | 自动注册实例与元数据
+        v
+Nacos</code></pre>
+        <p>核心思路是把 Nacos 作为服务实例和工具元数据的来源，MCP 网关内部维护一份可查询、可路由的 Tool Catalog。MCP Server 只负责声明自己提供哪些工具和端点；MCP 网关负责把这些声明转换为上游可用的统一工具目录。</p>
+      </section>
+
+      <section id="uml">
+        <h2>UML 视图</h2>
+        <p class="note">本 HTML 版本直接引用 SVG 图片，不依赖 Mermaid 渲染能力。</p>
+
+        <h3>组件图</h3>
+        <div class="diagram">
+          <img src="uml/component-diagram.svg" alt="MCP 网关组件图">
+          <a href="uml/component-diagram.svg">打开 SVG 原图</a>
+        </div>
+        <p>组件图说明：</p>
+        <ul>
+          <li><code>AI 应用 / Agent 平台</code> 只依赖 MCP 网关暴露的统一入口，不直接感知后端 MCP Server 实例。</li>
+          <li><code>Auth / Tenant</code> 负责应用身份、用户身份与租户上下文解析，是所有工具调用进入调度前的前置校验。</li>
+          <li><code>Nacos Discovery</code> 订阅 Nacos 中的 MCP Server 实例变化，并把实例、协议端点、工具元数据转换为网关内部对象。</li>
+          <li><code>Tool Catalog</code> 聚合所有可用工具，支持按工具名、版本、领域、标签、租户范围进行查询。</li>
+          <li><code>Router / Scheduler</code> 根据目录、权限、灰度、健康状态和权重选择目标实例。</li>
+          <li><code>MCP Client</code> 负责向下游 MCP Server 集群发起真实 <code>tools/call</code> 调用；组件图只画到集群边界，具体选择哪个实例由 <code>Router / Scheduler</code> 在运行时决策，细节放到时序图和调度说明中表达。</li>
+          <li><code>Policy / Audit</code> 和 <code>Metrics / Trace</code> 分别承载限流、审计、指标和链路追踪等治理能力。</li>
+          <li>图中蓝色表示 MCP 工具调用链路，只画到 MCP Server 集群；灰色表示服务发现与目录刷新链路；橙色表示 MCP Server 集群注册实例与心跳。组件图不展开每个 Server 实例的调用分支，避免把“可选路由”误解为“同时调用”。</li>
+        </ul>
+
+        <h3>部署图</h3>
+        <div class="diagram">
+          <img src="uml/deployment-diagram.svg" alt="MCP 网关部署图">
+          <a href="uml/deployment-diagram.svg">打开 SVG 原图</a>
+        </div>
+        <p>部署图说明：</p>
+        <ul>
+          <li><code>上游应用区</code> 只访问 <code>Gateway 集群</code>，不直接访问 Nacos 或工具服务区。</li>
+          <li><code>Gateway 集群</code> 可多实例部署，每个实例独立订阅 Nacos，保持本地 Tool Catalog。</li>
+          <li><code>注册中心</code> 只表达 Nacos 的服务发现职责，不承载业务调用。</li>
+          <li><code>工具服务区</code> 包含多个 MCP Server 实例，部署图只展示实例分布；具体工具路由由网关调度完成。</li>
+          <li>图中蓝色表示业务请求和 MCP 调用主链路，灰色表示 Gateway 订阅 Nacos，橙色表示工具服务实例注册和心跳。</li>
+        </ul>
+
+        <h3>MCP Server 注册发现时序图</h3>
+        <div class="diagram">
+          <img src="uml/registration-sequence.svg" alt="MCP Server 注册发现时序图">
+          <a href="uml/registration-sequence.svg">打开 SVG 原图</a>
+        </div>
+
+        <h3>工具调用时序图</h3>
+        <div class="diagram">
+          <img src="uml/tool-call-sequence.svg" alt="工具调用时序图">
+          <a href="uml/tool-call-sequence.svg">打开 SVG 原图</a>
+        </div>
+
+        <h3>核心类图</h3>
+        <div class="diagram">
+          <img src="uml/class-diagram.svg" alt="核心类图">
+          <a href="uml/class-diagram.svg">打开 SVG 原图</a>
+        </div>
+      </section>
+
+      <section id="modules">
+        <h2>模块设计</h2>
+
+        <h3>MCP Server 注册模块</h3>
+        <p>每个 MCP Server 启动时向 Nacos 注册服务实例。建议每类工具服务使用独立 serviceName，例如 <code>mcp-server-knowledge-base</code>、<code>mcp-server-approval</code>、<code>mcp-server-document</code>。</p>
+        <ul>
+          <li>实例基础信息：IP、端口、权重、集群、命名空间、分组、健康状态。</li>
+          <li>MCP 元数据：协议版本、传输方式、工具清单、工具版本、能力标签、租户范围、鉴权类型、灰度标识。</li>
+          <li>实例下线时主动注销；异常退出时依赖 Nacos 心跳或健康检查剔除。</li>
+        </ul>
+
+        <h3>Nacos Discovery 模块</h3>
+        <ul>
+          <li>拉取全量服务与实例元数据。</li>
+          <li>监听实例新增、删除、健康状态变化和元数据变化。</li>
+          <li>将 Nacos 原始实例转换为内部 <code>McpServerInstance</code>。</li>
+          <li>通知 Tool Catalog 进行增量刷新。</li>
+        </ul>
+        <p>为防止 Nacos 短暂抖动影响调用，网关应保留本地缓存，并设置缓存 TTL、最后可用版本和降级策略。</p>
+
+        <h3>Tool Catalog 模块</h3>
+        <ul>
+          <li>按 <code>toolName</code> 建立索引。</li>
+          <li>按 <code>domain</code>、<code>tags</code>、<code>version</code>、<code>tenantScope</code> 建立过滤条件。</li>
+          <li>支持同名工具多版本或多实例。</li>
+          <li>标记工具可用状态、灰度状态和推荐实例。</li>
+        </ul>
+        <p>当多个 MCP Server 注册同名工具时，默认按 <code>toolName + version + domain</code> 去重；如果仍冲突，则进入冲突状态，不对外暴露为默认可调用工具。</p>
+
+        <h3>Router / Scheduler 模块</h3>
+        <ol>
+          <li>根据 <code>toolName</code> 查找候选工具。</li>
+          <li>根据租户、权限、版本、标签和灰度规则过滤。</li>
+          <li>根据健康状态、权重、负载和熔断状态选择实例。</li>
+          <li>通过 MCP Client 调用目标 MCP Server。</li>
+          <li>记录调用结果，并反馈给熔断、指标和审计模块。</li>
+        </ol>
+
+        <h3>MCP 协议适配模块</h3>
+        <p>网关对上游提供 MCP 兼容入口，至少包含 <code>tools/list</code> 和 <code>tools/call</code>。下游连接方式建议优先支持 MCP Streamable HTTP；如现有服务使用 SSE，也可通过适配层兼容。</p>
+
+        <h3>安全与治理模块</h3>
+        <ul>
+          <li>鉴权：验证上游应用身份、用户身份、租户上下文。</li>
+          <li>授权：校验调用方是否允许访问目标 Tool。</li>
+          <li>限流：按应用、租户、用户、Tool 维度限流。</li>
+          <li>审计：记录调用方、工具、参数摘要、结果状态、耗时和错误码。</li>
+          <li>脱敏：日志中避免落明文敏感参数。</li>
+          <li>熔断降级：实例连续失败后临时摘除，保留可配置恢复窗口。</li>
+        </ul>
+      </section>
+
+      <section id="metadata">
+        <h2>Nacos 元数据约定</h2>
+        <pre><code>{
+  "mcpProtocolVersion": "2025-03-26",
+  "transport": "streamable-http",
+  "endpoint": "/mcp",
+  "domain": "knowledge-base",
+  "serverVersion": "1.0.0",
+  "tenantMode": "shared",
+  "authType": "gateway-token",
+  "tools": [
+    {
+      "name": "knowledge.search",
+      "version": "1.0.0",
+      "description": "Search enterprise knowledge base",
+      "tags": ["knowledge", "search"],
+      "inputSchemaRef": "nacos://mcp-schemas/knowledge.search/1.0.0",
+      "outputSchemaRef": "nacos://mcp-schemas/knowledge.search/1.0.0",
+      "enabled": true
+    }
+  ],
+  "gray": {
+    "enabled": false,
+    "labels": []
+  }
+}</code></pre>
+        <ul>
+          <li>小规模元数据可直接放在 Nacos instance metadata。</li>
+          <li>大型 schema 不建议直接塞入实例 metadata，可使用 <code>schemaRef</code> 指向 Nacos Config、对象存储或独立元数据服务。</li>
+          <li>工具名采用领域前缀，例如 <code>knowledge.search</code>、<code>approval.submit</code>、<code>document.generate</code>。</li>
+          <li>metadata 增加 <code>metadataVersion</code> 后可支持兼容升级。</li>
+        </ul>
+      </section>
+
+      <section id="flows">
+        <h2>核心流程</h2>
+        <h3>MCP Server 启动注册</h3>
+        <pre><code>MCP Server 启动
+  -> 加载本地 Tool 定义
+  -> 生成 Nacos 注册 metadata
+  -> 注册 Nacos 实例
+  -> 开始心跳或健康上报
+  -> 对外提供 /mcp 与 /health</code></pre>
+        <p>如果注册失败，MCP Server 可以继续启动但标记为不可发现；生产环境建议注册失败超过阈值后启动失败，避免服务已运行但网关不可见。</p>
+
+        <h3>网关发现刷新</h3>
+        <pre><code>MCP Gateway 启动
+  -> 订阅 mcp-server-* 服务
+  -> 拉取 Nacos 全量实例
+  -> 校验 metadata
+  -> 构建 Tool Catalog
+  -> 监听 Nacos 变更
+  -> 增量刷新工具目录</code></pre>
+        <p>刷新过程应使用版本化快照，先构建新 Catalog，再原子替换，避免查询时读到半更新状态。</p>
+
+        <h3>工具调用</h3>
+        <pre><code>AI 应用发起 tools/call
+  -> 网关鉴权与租户解析
+  -> Tool Catalog 查询候选工具
+  -> Policy 过滤
+  -> Scheduler 选择实例
+  -> MCP Client 调用下游 MCP Server
+  -> 统一错误码映射与响应封装
+  -> 记录指标、Trace 和审计</code></pre>
+      </section>
+
+      <section id="objects">
+        <h2>关键数据对象</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>对象</th>
+              <th>关键字段</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>McpServerInstance</code></td>
+              <td>serviceName、instanceId、host、port、endpoint、protocolVersion、transport、weight、healthy、metadataVersion、tags、tools</td>
+              <td>网关内部识别和调度 MCP Server 实例的基础对象。</td>
+            </tr>
+            <tr>
+              <td><code>ToolDescriptor</code></td>
+              <td>name、version、domain、description、inputSchemaRef、outputSchemaRef、tenantMode、authPolicy、enabled、providerInstances</td>
+              <td>聚合后的工具描述，用于工具发现和候选实例选择。</td>
+            </tr>
+            <tr>
+              <td><code>ToolRoute</code></td>
+              <td>toolName、version、tenantId、selectedInstance、routeReason、policySnapshot</td>
+              <td>一次工具调用的路由决策结果。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="ha">
+        <h2>高可用与异常处理</h2>
+        <ul>
+          <li>Nacos 不可用：网关继续使用最后一次成功加载的 Catalog，并输出告警；超过 TTL 后可按配置进入只读发现或拒绝新工具调用。</li>
+          <li>MCP Server 不健康：Discovery 标记不可用，Scheduler 不再选择该实例。</li>
+          <li>工具元数据非法：跳过该实例的非法工具，保留实例其他合法工具，并记录告警。</li>
+          <li>同名工具冲突：进入冲突态，需通过版本、领域或显式优先级解决。</li>
+          <li>下游调用超时：按 Tool 维度配置超时时间，失败计入熔断统计。</li>
+          <li>网关多实例部署：每个网关实例独立订阅 Nacos；Tool Catalog 构建逻辑保持确定性。</li>
+        </ul>
+      </section>
+
+      <section id="config">
+        <h2>配置建议</h2>
+        <pre><code>mcpGateway:
+  nacos:
+    namespace: my-cloud-ai
+    group: MCP_SERVER_GROUP
+    servicePattern: mcp-server-*
+    watchEnabled: true
+    cacheTtlSeconds: 300
+  catalog:
+    conflictPolicy: mark-conflict
+    schemaLoadMode: lazy
+  routing:
+    defaultStrategy: weighted-round-robin
+    healthRequired: true
+  governance:
+    defaultTimeoutMs: 30000
+    circuitBreakerEnabled: true
+    auditEnabled: true</code></pre>
+      </section>
+
+      <section id="roadmap">
+        <h2>兼容与演进</h2>
+        <ol>
+          <li>第一阶段：完成 MCP Server 注册、网关发现、工具目录聚合和基础调用。</li>
+          <li>第二阶段：补齐鉴权、限流、审计、Trace、熔断和灰度。</li>
+          <li>第三阶段：引入独立 Tool Metadata 服务，支持更复杂的 schema、工具市场和权限编排。</li>
+          <li>第四阶段：支持多注册中心、多环境迁移和跨地域容灾。</li>
+        </ol>
+      </section>
+
+      <section id="risks">
+        <h2>风险与待确认</h2>
+        <h3>风险与取舍</h3>
+        <ul>
+          <li>将工具 metadata 放入 Nacos 简单直接，但不适合承载大型 schema；因此保留 <code>schemaRef</code>。</li>
+          <li>网关统一调度降低上游复杂度，但会成为关键链路；需要多实例部署和缓存降级。</li>
+          <li>MCP 协议仍在演进，协议版本需要显式注册并在网关侧做兼容策略。</li>
+          <li>同名工具冲突在多团队接入时概率较高，必须在命名规范和冲突策略上提前约束。</li>
+        </ul>
+        <h3>待确认项</h3>
+        <ul>
+          <li>MCP Server 的主要技术栈与 MCP SDK 版本。</li>
+          <li>当前 Nacos 环境的 namespace、group、鉴权方式和网络连通策略。</li>
+          <li>上游 AI 应用希望直接使用 MCP 协议，还是通过现有 HTTP API 间接调用。</li>
+          <li>工具级权限模型是否按租户、角色、用户或应用维度控制。</li>
+          <li>知识库、审批、文档三个首批 Tool 的名称、参数 schema 和响应 schema。</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

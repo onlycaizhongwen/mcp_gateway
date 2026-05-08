@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="720" viewBox="0 0 1220 720">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#334155"/></marker>
+    <style>
+      .class{fill:#f8fafc;stroke:#334155;stroke-width:1.5;rx:8}
+      .head{fill:#e0f2fe;stroke:#334155;stroke-width:1.5}
+      .title{font:700 18px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}
+      .name{font:700 14px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}
+      .text{font:12px Arial,"Microsoft YaHei",sans-serif;fill:#334155}
+      .line{stroke:#334155;stroke-width:1.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect x="20" y="20" width="1180" height="680" fill="#fff" stroke="#cbd5e1"/>
+  <text x="40" y="55" class="title">核心类图</text>
+
+  <g transform="translate(60,95)">
+    <rect width="210" height="125" class="class"/><rect width="210" height="34" class="head"/>
+    <text x="58" y="23" class="name">McpGateway</text>
+    <text x="14" y="58" class="text">+ listTools(request)</text>
+    <text x="14" y="82" class="text">+ callTool(request)</text>
+  </g>
+  <g transform="translate(360,75)">
+    <rect width="230" height="150" class="class"/><rect width="230" height="34" class="head"/>
+    <text x="62" y="23" class="name">NacosDiscovery</text>
+    <text x="14" y="58" class="text">+ subscribe()</text>
+    <text x="14" y="82" class="text">+ refreshInstances()</text>
+    <text x="14" y="106" class="text">+ onInstanceChanged(event)</text>
+  </g>
+  <g transform="translate(690,75)">
+    <rect width="230" height="150" class="class"/><rect width="230" height="34" class="head"/>
+    <text x="75" y="23" class="name">ToolCatalog</text>
+    <text x="14" y="58" class="text">+ findTools(filter)</text>
+    <text x="14" y="82" class="text">+ findCandidates(...)</text>
+    <text x="14" y="106" class="text">+ refresh(instances)</text>
+  </g>
+  <g transform="translate(970,95)">
+    <rect width="190" height="105" class="class"/><rect width="190" height="34" class="head"/>
+    <text x="38" y="23" class="name">RouterScheduler</text>
+    <text x="14" y="58" class="text">+ selectRoute(...)</text>
+  </g>
+  <g transform="translate(60,330)">
+    <rect width="210" height="105" class="class"/><rect width="210" height="34" class="head"/>
+    <text x="75" y="23" class="name">McpClient</text>
+    <text x="14" y="58" class="text">+ call(instance,...)</text>
+  </g>
+  <g transform="translate(360,305)">
+    <rect width="230" height="210" class="class"/><rect width="230" height="34" class="head"/>
+    <text x="47" y="23" class="name">McpServerInstance</text>
+    <text x="14" y="58" class="text">+ serviceName</text>
+    <text x="14" y="78" class="text">+ instanceId</text>
+    <text x="14" y="98" class="text">+ host</text>
+    <text x="14" y="118" class="text">+ port</text>
+    <text x="14" y="138" class="text">+ endpoint</text>
+    <text x="14" y="158" class="text">+ transport</text>
+    <text x="14" y="178" class="text">+ healthy / weight</text>
+  </g>
+  <g transform="translate(690,305)">
+    <rect width="230" height="210" class="class"/><rect width="230" height="34" class="head"/>
+    <text x="62" y="23" class="name">ToolDescriptor</text>
+    <text x="14" y="58" class="text">+ name</text>
+    <text x="14" y="78" class="text">+ version</text>
+    <text x="14" y="98" class="text">+ domain</text>
+    <text x="14" y="118" class="text">+ inputSchemaRef</text>
+    <text x="14" y="138" class="text">+ outputSchemaRef</text>
+    <text x="14" y="158" class="text">+ enabled</text>
+  </g>
+  <g transform="translate(970,330)">
+    <rect width="190" height="160" class="class"/><rect width="190" height="34" class="head"/>
+    <text x="65" y="23" class="name">ToolRoute</text>
+    <text x="14" y="58" class="text">+ toolName</text>
+    <text x="14" y="78" class="text">+ version</text>
+    <text x="14" y="98" class="text">+ tenantId</text>
+    <text x="14" y="118" class="text">+ selectedInstance</text>
+    <text x="14" y="138" class="text">+ routeReason</text>
+  </g>
+
+  <path d="M270 150 H360" class="line"/>
+  <path d="M270 170 H690" class="line"/>
+  <path d="M270 190 H970" class="line"/>
+  <path d="M165 220 V330" class="line"/>
+  <path d="M475 225 V305" class="line"/>
+  <path d="M805 225 V305" class="line"/>
+  <path d="M1065 200 V330" class="line"/>
+  <path d="M590 410 H690" class="line"/>
+  <path d="M920 410 H970" class="line"/>
+</svg>

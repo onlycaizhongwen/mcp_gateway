@@ -1,0 +1,1 @@
+"""Tool schema registry package."""

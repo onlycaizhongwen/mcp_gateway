@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0369a1"/>
+    </marker>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#b45309"/>
+    </marker>
+    <marker id="arrow-slate" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+    <style>
+      .canvas{fill:#ffffff;stroke:#d8e1ee;stroke-width:1.2}
+      .panel{fill:#f8fafc;stroke:#cbd5e1;stroke-width:1.4;rx:16}
+      .gateway{fill:#e0f2fe;stroke:#0284c7;stroke-width:2;rx:18}
+      .module{fill:#ffffff;stroke:#64748b;stroke-width:1.4;rx:12}
+      .entry{fill:#eef2ff;stroke:#4f46e5;stroke-width:1.5;rx:14}
+      .nacos{fill:#fff7d6;stroke:#d97706;stroke-width:2;rx:14}
+      .cluster{fill:#f0fdf4;stroke:#16a34a;stroke-width:2;rx:18}
+      .server{fill:#ffffff;stroke:#16a34a;stroke-width:1.5;rx:12}
+      .title{font:700 22px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}
+      .subtitle{font:700 16px Arial,"Microsoft YaHei",sans-serif;fill:#1e293b}
+      .text{font:14px Arial,"Microsoft YaHei",sans-serif;fill:#334155}
+      .small{font:12px Arial,"Microsoft YaHei",sans-serif;fill:#475569}
+      .link-blue{stroke:#0369a1;stroke-width:2.4;fill:none;marker-end:url(#arrow-blue)}
+      .link-amber{stroke:#b45309;stroke-width:2.2;fill:none;marker-end:url(#arrow-amber)}
+      .link-slate{stroke:#475569;stroke-width:2.1;fill:none;marker-end:url(#arrow-slate)}
+      .flowbox{fill:#ffffff;stroke:#d8e1ee;stroke-width:1;rx:7}
+      .legend{font:12px Arial,"Microsoft YaHei",sans-serif;fill:#334155}
+    </style>
+  </defs>
+
+  <rect x="24" y="24" width="1232" height="672" class="canvas"/>
+  <text x="56" y="66" class="title">MCP 网关组件图</text>
+  <text x="56" y="94" class="text">组件图表达核心依赖关系：调用方通过网关调用工具，网关从 Nacos 发现工具服务，MCP Server 集群向 Nacos 注册。</text>
+
+  <rect x="64" y="142" width="240" height="420" class="panel"/>
+  <text x="92" y="180" class="subtitle">调用方</text>
+  <rect x="100" y="304" width="168" height="88" class="entry"/>
+  <text x="146" y="338" class="subtitle">AI 应用</text>
+  <text x="124" y="366" class="text">Agent 平台 / 业务应用</text>
+
+  <rect x="380" y="142" width="410" height="420" class="gateway"/>
+  <text x="526" y="180" class="subtitle">MCP Gateway</text>
+
+  <rect x="422" y="218" width="148" height="56" class="module"/>
+  <text x="454" y="252" class="text">Auth / Tenant</text>
+  <rect x="602" y="218" width="148" height="56" class="module"/>
+  <text x="632" y="252" class="text">Tool Catalog</text>
+
+  <rect x="422" y="314" width="148" height="56" class="module"/>
+  <text x="443" y="348" class="text">Nacos Discovery</text>
+  <rect x="602" y="314" width="148" height="56" class="module"/>
+  <text x="648" y="348" class="text">Router</text>
+
+  <rect x="422" y="410" width="148" height="56" class="module"/>
+  <text x="450" y="444" class="text">Policy / Audit</text>
+  <rect x="602" y="410" width="148" height="56" class="module"/>
+  <text x="642" y="444" class="text">MCP Client</text>
+
+  <rect x="512" y="492" width="148" height="52" class="module"/>
+  <text x="548" y="524" class="text">Metrics / Trace</text>
+
+  <rect x="874" y="142" width="340" height="420" class="panel"/>
+  <text x="902" y="180" class="subtitle">注册中心与工具服务</text>
+
+  <rect x="936" y="218" width="214" height="72" class="nacos"/>
+  <text x="1018" y="248" class="subtitle">Nacos</text>
+  <text x="988" y="274" class="text">服务发现 / 元数据</text>
+
+  <rect x="914" y="348" width="260" height="166" class="cluster"/>
+  <text x="990" y="382" class="subtitle">MCP Server 集群</text>
+  <rect x="946" y="404" width="196" height="28" class="server"/>
+  <text x="980" y="423" class="small">knowledge-base-mcp-server</text>
+  <rect x="946" y="444" width="196" height="28" class="server"/>
+  <text x="1009" y="463" class="small">approval-mcp-server</text>
+  <rect x="946" y="484" width="196" height="28" class="server"/>
+  <text x="1014" y="503" class="small">document-mcp-server</text>
+
+  <path d="M268 348 H380" class="link-blue"/>
+  <rect x="300" y="320" width="88" height="26" class="flowbox"/>
+  <text x="312" y="338" class="small">MCP 请求</text>
+
+  <path d="M750 438 H914" class="link-blue"/>
+  <rect x="802" y="404" width="96" height="26" class="flowbox"/>
+  <text x="814" y="422" class="small">工具调用</text>
+
+  <path d="M570 342 H602" class="link-slate"/>
+  <path d="M496 314 V292 H620 V274" class="link-slate"/>
+  <rect x="520" y="258" width="104" height="26" class="flowbox"/>
+  <text x="533" y="276" class="small">刷新目录</text>
+
+  <path d="M570 342 H820 V254 H936" class="link-slate"/>
+  <rect x="792" y="218" width="104" height="26" class="flowbox"/>
+  <text x="805" y="236" class="small">发现服务</text>
+
+  <path d="M570 246 H602" class="link-slate"/>
+  <path d="M676 274 V314" class="link-slate"/>
+  <path d="M676 370 V410" class="link-slate"/>
+  <path d="M570 438 H602" class="link-slate"/>
+
+  <path d="M1044 348 V290" class="link-amber"/>
+  <rect x="1060" y="302" width="96" height="26" class="flowbox"/>
+  <text x="1072" y="320" class="small">注册 / 心跳</text>
+
+  <rect x="64" y="612" width="16" height="4" fill="#0369a1"/>
+  <text x="88" y="620" class="legend">蓝色：工具调用，只画到 MCP Server 集群，不展开具体实例选择</text>
+  <rect x="440" y="612" width="16" height="4" fill="#475569"/>
+  <text x="464" y="620" class="legend">灰色：网关发现服务并刷新工具目录</text>
+  <rect x="720" y="612" width="16" height="4" fill="#b45309"/>
+  <text x="744" y="620" class="legend">橙色：MCP Server 集群注册实例和心跳</text>
+</svg>
