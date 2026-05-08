@@ -135,7 +135,7 @@ def test_execute_document_generate_api():
             "arguments": {
                 "template": "contract.summary",
                 "title": "合同摘要",
-                "variables": {"customer": "明源云"},
+                "variables": {"customer": "示例客户"},
             },
         },
     )

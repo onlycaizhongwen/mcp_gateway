@@ -1,6 +1,6 @@
 # MCP Gateway MVP
 
-本项目是 MCP Gateway 的 Python/FastAPI MVP 实现，用于验证明源云 AI 升级项目中 MCP 工具层的核心链路：MCP Server 注册到 Nacos，MCP Gateway 动态发现、聚合工具目录并统一调度调用。
+本项目是 MCP Gateway 的 Python/FastAPI MVP 实现，用于验证企业 AI 升级项目中 MCP 工具层的核心链路：MCP Server 注册到 Nacos，MCP Gateway 动态发现、聚合工具目录并统一调度调用。
 
 当前版本定位为 **MCP Gateway MVP / Nacos 联调样例版**，适合架构验证、本地演示、测试环境联调和 MCP Tool 接入规范参考，不建议直接作为生产版本发布。
 
@@ -198,7 +198,7 @@ Invoke-RestMethod `
   -Method Post `
   -Uri http://127.0.0.1:8000/api/v1/tools/document.generate/execute `
   -ContentType "application/json" `
-  -Body '{"tenant_id":"tenant-a","app_id":"internal-ai-agent","arguments":{"template":"contract.summary","title":"合同摘要","variables":{"customer":"明源云"}}}'
+  -Body '{"tenant_id":"tenant-a","app_id":"internal-ai-agent","arguments":{"template":"contract.summary","title":"合同摘要","variables":{"customer":"示例客户"}}}'
 ```
 
 ## 测试

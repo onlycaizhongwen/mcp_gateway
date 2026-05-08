@@ -8,7 +8,7 @@
 
 本次交付为 **MCP Gateway MVP / Nacos 联调样例版**。
 
-该版本用于验证明源云 AI 升级项目中 MCP 工具层的核心链路：MCP Server 通过 Nacos 注册工具元数据，MCP Gateway 发现、聚合、调度并对上游提供统一工具查询和调用入口。
+该版本用于验证企业 AI 升级项目中 MCP 工具层的核心链路：MCP Server 通过 Nacos 注册工具元数据，MCP Gateway 发现、聚合、调度并对上游提供统一工具查询和调用入口。
 
 当前版本适合作为：
 
