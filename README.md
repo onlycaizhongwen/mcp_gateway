@@ -1,45 +1,64 @@
 # MCP Gateway MVP
 
-Python/FastAPI implementation of the MCP Gateway MVP described in `docs/codex/v1`.
+本项目是 MCP Gateway 的 Python/FastAPI MVP 实现，用于验证明源云 AI 升级项目中 MCP 工具层的核心链路：MCP Server 注册到 Nacos，MCP Gateway 动态发现、聚合工具目录并统一调度调用。
 
-## What is included
+当前版本定位为 **MCP Gateway MVP / Nacos 联调样例版**，适合架构验证、本地演示、测试环境联调和 MCP Tool 接入规范参考，不建议直接作为生产版本发布。
 
-- Mock Nacos discovery with sample MCP Server metadata.
-- Optional Nacos OpenAPI discovery adapter.
-- Tool Catalog aggregation for `knowledge.search`, `approval.create_task`, and `document.generate`.
-- Basic router/scheduler with healthy instance selection.
-- HTTP API adapter:
+## 已包含能力
+
+- Mock Nacos discovery，内置示例 MCP Server metadata。
+- 可选 Nacos OpenAPI discovery adapter。
+- Tool Catalog 聚合，支持 `knowledge.search`、`approval.create_task`、`document.generate`。
+- 基础 Router/Scheduler，按健康实例选择目标 MCP Server。
+- HTTP API：
   - `GET /api/v1/tools`
+  - `GET /api/v1/tools/{toolName}/schema`
   - `POST /api/v1/tools/{toolName}/execute`
-- Mock MCP client for knowledge search, approval task creation, and document generation.
-- Optional Streamable HTTP MCP client adapter.
-- Basic policy check by `app_id`.
-- YAML permission config loaded from `config/mcp-gateway.yaml`.
-- Tool schema lookup through an in-memory schema registry.
-- Trace/request id envelope.
-- Minimal audit logging for tool calls, including route and duration without argument values.
-- Admin APIs for Catalog status and manual refresh.
-- Minimal in-memory circuit breaker for downstream MCP Server failures.
-- Basic in-memory rate limiting by app, tenant, and tool.
-- Optional active MCP Server health checks during Catalog refresh.
-- Catalog snapshot preservation when Nacos discovery refresh fails after a previous success.
-- Optional periodic Catalog refresh for dynamic discovery without manual admin calls.
+- Mock MCP client，支持知识库搜索、审批任务创建、文档生成三类演示工具。
+- 可选 Streamable HTTP MCP client adapter。
+- 基于 `app_id` 的基础权限校验。
+- 从 `config/mcp-gateway.yaml` 加载 YAML 权限配置。
+- 内存版 schema registry 和工具 schema 查询。
+- traceId / requestId 统一响应封装。
+- 最小审计日志，记录调用路由、耗时和结果码，不记录参数明文。
+- Admin API，支持 Catalog 状态查询和手动刷新。
+- 最小内存熔断。
+- 基础内存限流，按 app、tenant、tool 维度控制调用。
+- 可选主动健康检查。
+- Nacos discovery 失败后保留最后一次成功 Catalog 快照。
+- 可选定时 Catalog 刷新，无需手动调用 admin refresh。
+- MCP Server 注册到 Nacos 的 helper 和命令行示例。
 
-## Run locally
+## 本地运行
+
+安装依赖：
 
 ```powershell
 python -m pip install -e ".[dev]"
+```
+
+启动服务：
+
+```powershell
 python -m uvicorn mcp_gateway.main:app --reload
 ```
 
-To use a different config file:
+使用自定义配置文件：
 
 ```powershell
 $env:MCP_GATEWAY_CONFIG="D:\path\to\mcp-gateway.yaml"
 python -m uvicorn mcp_gateway.main:app --reload
 ```
 
-To enable Nacos discovery, update `config/mcp-gateway.yaml`:
+打开 API 文档：
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## Nacos 发现配置
+
+如需启用真实 Nacos discovery，可修改 `config/mcp-gateway.yaml`：
 
 ```yaml
 discovery:
@@ -53,17 +72,17 @@ nacos:
     - mcp-server-knowledge
 ```
 
-Nacos integration notes and an MCP Server registration metadata template are available at:
+Nacos 联调说明和 MCP Server 注册 metadata 模板：
 
 - `docs/codex/v1/designs/mcp-gateway-nacos-integration-guide.md`
 - `docs/codex/v1/designs/mcp-server-nacos-registration-template.json`
 
-An example MCP Server registration helper is available at:
+MCP Server 注册示例：
 
 - `src/mcp_gateway/examples/nacos_registration.py`
 - `examples/register_mcp_server_to_nacos.py`
 
-Example:
+注册示例 MCP Server：
 
 ```powershell
 python examples/register_mcp_server_to_nacos.py `
@@ -74,7 +93,9 @@ python examples/register_mcp_server_to_nacos.py `
   --port 18081
 ```
 
-To call real MCP Server endpoints through Streamable HTTP:
+## MCP Client 配置
+
+调用真实 MCP Server 时，可开启 Streamable HTTP adapter：
 
 ```yaml
 mcp_client:
@@ -82,7 +103,9 @@ mcp_client:
   timeout_seconds: 10
 ```
 
-Circuit breaker defaults:
+## 治理配置
+
+熔断配置：
 
 ```yaml
 circuit_breaker:
@@ -91,7 +114,7 @@ circuit_breaker:
   recovery_seconds: 30
 ```
 
-Rate limits are configured per app:
+限流配置：
 
 ```yaml
 permissions:
@@ -104,7 +127,7 @@ permissions:
         burst: 50
 ```
 
-Active health checks are disabled by default for local mock mode:
+主动健康检查默认关闭，避免本地 mock 模式误探真实端口：
 
 ```yaml
 health_check:
@@ -112,7 +135,7 @@ health_check:
   timeout_seconds: 1
 ```
 
-Periodic Catalog refresh is also disabled by default:
+定时 Catalog 刷新默认关闭：
 
 ```yaml
 catalog_refresh:
@@ -120,21 +143,21 @@ catalog_refresh:
   interval_seconds: 30
 ```
 
-Open:
+## 示例调用
 
-```text
-http://127.0.0.1:8000/docs
-```
-
-## Example calls
+查询工具列表：
 
 ```powershell
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/v1/tools
 ```
 
+查询工具 schema：
+
 ```powershell
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/api/v1/tools/knowledge.search/schema
 ```
+
+Catalog 管理接口：
 
 ```powershell
 Invoke-RestMethod `
@@ -148,6 +171,8 @@ Invoke-RestMethod `
   -Headers @{"x-app-id"="internal-ai-agent"}
 ```
 
+调用知识库搜索：
+
 ```powershell
 Invoke-RestMethod `
   -Method Post `
@@ -155,6 +180,8 @@ Invoke-RestMethod `
   -ContentType "application/json" `
   -Body '{"tenant_id":"tenant-a","app_id":"internal-ai-agent","arguments":{"query":"年假政策","top_k":1}}'
 ```
+
+创建审批任务：
 
 ```powershell
 Invoke-RestMethod `
@@ -164,6 +191,8 @@ Invoke-RestMethod `
   -Body '{"tenant_id":"tenant-a","app_id":"internal-ai-agent","arguments":{"title":"合同审批","applicant":"u001","approver":"u002","payload":{"amount":1000}}}'
 ```
 
+生成文档：
+
 ```powershell
 Invoke-RestMethod `
   -Method Post `
@@ -172,14 +201,29 @@ Invoke-RestMethod `
   -Body '{"tenant_id":"tenant-a","app_id":"internal-ai-agent","arguments":{"template":"contract.summary","title":"合同摘要","variables":{"customer":"明源云"}}}'
 ```
 
-## Test
+## 测试
 
 ```powershell
 python -m pytest
 ```
 
-## Next steps
+当前验证结果：`52 passed`。
 
-- Replace the minimal Streamable HTTP client with the official Python MCP SDK adapter when the SDK version is locked.
-- Replace in-memory schema registry with Nacos Config or metadata service.
-- Add production-grade circuit breaker metrics, distributed rate limiting, and real business system adapters.
+## 交付说明
+
+完整交付说明见：
+
+```text
+docs/codex/v1/delivery/mcp-gateway-mvp-delivery.md
+```
+
+该文档包含交付范围、运行方式、验证结果、对外交付口径、已知限制和待完成事项。
+
+## 待完成事项
+
+- 替换最小 Streamable HTTP client 为官方 Python MCP SDK adapter。
+- 将内存 schema registry 替换为 Nacos Config 或独立元数据服务。
+- 完成真实 Nacos 测试环境联调。
+- 将限流、熔断升级为分布式或基础设施层方案。
+- 接入真实知识库、审批、文档业务系统。
+- 补充生产级指标、审计落库和告警能力。
