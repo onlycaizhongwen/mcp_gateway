@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from mcp_gateway.catalog.tool_catalog import ToolCatalog
 from mcp_gateway.discovery.base import DiscoveryClient
 from mcp_gateway.health.health_checker import HealthChecker, NoopHealthChecker, apply_health_checks
+from mcp_gateway.observability.metrics import MetricsRegistry
 from mcp_gateway.routing.router_scheduler import RouterScheduler
 
 
@@ -33,11 +34,13 @@ class GatewayRuntime:
         catalog: ToolCatalog,
         scheduler: RouterScheduler,
         health_checker: HealthChecker | None = None,
+        metrics: MetricsRegistry | None = None,
     ) -> None:
         self.discovery = discovery
         self.catalog = catalog
         self.scheduler = scheduler
         self.health_checker = health_checker or NoopHealthChecker()
+        self.metrics = metrics
         self.last_refresh: CatalogRefreshResult | None = None
         self._refresh_thread: threading.Thread | None = None
         self._stop_refresh = threading.Event()
@@ -58,6 +61,8 @@ class GatewayRuntime:
                 used_snapshot=True,
                 error_message=str(exc),
             )
+            if self.metrics is not None:
+                self.metrics.record_catalog_refresh(self.last_refresh)
             return self.last_refresh
 
         checked_instances = apply_health_checks(instances, self.health_checker)
@@ -70,6 +75,8 @@ class GatewayRuntime:
             unavailable_instance_count=len(checked_instances) - healthy_instance_count,
             tool_count=len(self.catalog.list_tools()),
         )
+        if self.metrics is not None:
+            self.metrics.record_catalog_refresh(self.last_refresh)
         return self.last_refresh
 
     def start_auto_refresh(self, interval_seconds: float) -> None:

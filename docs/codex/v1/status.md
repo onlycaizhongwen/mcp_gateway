@@ -18,11 +18,19 @@
 | 需求 | 已完成 | 已根据用户原始需求补充需求基线。 |
 | 设计 | 已完成 | 已输出 MCP Server 自动注册 Nacos、MCP 网关动态发现与调度设计。 |
 | 计划 | 已完成 | 已基于主设计和补充方案拆分 MVP 实施计划。 |
-| 实现 | 进行中 | 已完成 Python/FastAPI MVP 骨架、mock discovery、Nacos discovery adapter 骨架、Tool Catalog、Router、HTTP API、三类演示 Tool、YAML 权限配置、工具 schema 查询/基础校验、Streamable HTTP MCP Client adapter 骨架、最小审计日志、Catalog 管理接口、admin 权限保护、最小内存熔断、基础内存限流、可选主动健康检查、可选定时 Catalog 刷新和真实 Nacos 联调准备。 |
-| 追踪 | 已完成 | 已输出 trace 审查，核心 MVP 已闭环，剩余项主要是真实 Nacos/MCP Server 联调、生产级治理和真实业务系统对接。 |
+| 实现 | 进行中 | 已完成 Python/FastAPI MVP 骨架、mock discovery、Nacos discovery adapter、Tool Catalog、Router、HTTP API、三类演示 Tool、YAML 权限配置、工具 schema 查询/基础校验、可插拔 schema registry（内存默认，Nacos Config 可选）、官方 Python MCP SDK Streamable HTTP Client adapter、可插拔审计（日志默认，JSONL 文件可选）、Prometheus `/metrics` 基础指标、Catalog 管理接口、admin 权限保护、可插拔限流/熔断（内存默认，Redis 可选）、本地 Docker Redis 治理联调、可选主动健康检查、可选定时 Catalog 刷新、本地 Docker Nacos 注册/发现/Config schema/调用联调配置和示例 MCP Server。 |
+| 追踪 | 已完成 | 已输出 trace 审查，核心 MVP 已闭环；本地 Nacos 注册、发现、Nacos Config schema、健康检查和 Streamable HTTP 调用已验证，本地 Redis 限流/熔断共享状态已验证，基础 metrics 出口和 JSONL 审计落地已具备，剩余项主要是公司测试/生产 Nacos 环境参数验证、生产压测/指标平台告警配置、审计中心接入和真实业务系统对接。 |
 
 ## 变更记录
 
+- 2026-05-30：新增可插拔审计配置，默认保持日志输出，支持 `audit.mode=file` 写入 JSONL 审计文件；审计事件包含 trace/request、app/tenant、tool、结果码、耗时、路由实例和参数 key，不记录参数明文；当前全量测试 `74 passed`。
+- 2026-05-29：新增 Prometheus 文本格式 `/metrics` 指标出口，记录工具调用总数、结果码、耗时汇总和 Catalog 刷新成功/快照/实例数指标；补充 API、运行时和 metrics 单元测试，当前全量测试 `69 passed`。
+- 2026-05-29：将内存 schema registry 升级为可插拔后端，默认保留内存样例，新增 Nacos Config schema registry；`nacos://mcp-schemas/...` schema ref 可映射为 Nacos Config `dataId=...json`，并支持复用 Nacos endpoint、namespace、鉴权和超时配置。
+- 2026-05-29：补齐本地 Docker Nacos Config schema mock 联调，新增 `examples/publish_schemas_to_nacos.py` 和 schema 发布 helper；已在本地 Nacos 中发布 mock schema，验证 Gateway `/schema` 从 Nacos Config 读取、缺参校验生效、工具调用经 Nacos discovery + 官方 SDK client 成功。
+- 2026-05-29：将 Streamable HTTP client 从手写 JSON-RPC 调用替换为官方 Python MCP SDK adapter，锁定 `mcp==1.27.1`，通过 `streamable_http_client`、`ClientSession.initialize()` 和 `session.call_tool()` 调用下游 MCP Server；同步将本地示例 MCP Server 改为官方 FastMCP 实现，并完成 `56 passed` 与本地端到端烟测。
+- 2026-05-29：完成本地 Docker Nacos 联调，新增 `docker-compose.nacos.yml`、`config/mcp-gateway-nacos-local.yaml` 和 `examples/mock_mcp_server.py`；修正 Nacos metadata 写入为 `metadata.mcp` JSON 字符串，并验证 Gateway 发现 `knowledge.search`、`providers=1`、Streamable HTTP `tools/call` 调用成功。
+- 2026-05-29：升级限流和熔断为可插拔治理后端，默认保留内存实现，并新增 Redis 共享状态后端；限流使用 Redis token bucket，熔断使用 Redis 共享 failure/open 状态，支持多 Gateway 副本共享治理状态。
+- 2026-05-29：新增本地 Docker Redis 联调配置和 `examples/redis_governance_smoke.py`，验证真实 Redis 后端中限流桶和熔断打开状态可跨两个 Gateway 治理对象共享。
 - 2026-05-06：新增交付说明文档 `docs/codex/v1/delivery/mcp-gateway-mvp-delivery.md`，明确交付范围、运行方式、验证结果、对外交付口径、已知限制和待完成事项。
 - 2026-05-06：新增 MCP Server 注册到 Nacos 的 Python 示例，包括可复用注册 helper、命令行示例和单元测试，并补充联调文档说明。
 - 2026-05-06：新增可选定时 Catalog 刷新，通过 `catalog_refresh.enabled` 与 `interval_seconds` 配置周期性重拉 Discovery，支持无需手动 admin refresh 的动态发现。
@@ -36,7 +44,7 @@
 - 2026-05-06：为 admin Catalog 管理接口新增最小权限保护，通过配置 `admin.allowed_app_ids` 与 `x-app-id` header 控制访问。
 - 2026-05-06：新增 GatewayRuntime 和 Catalog 管理接口，支持查询 Catalog 状态与手动刷新 Discovery/Catalog。
 - 2026-05-06：新增最小审计日志，记录工具调用 app、tenant、tool、route、耗时和结果码，仅记录参数 key，不落参数明文。
-- 2026-05-06：新增 Streamable HTTP MCP Client adapter 骨架，配置开启后可向选中 MCP Server endpoint 发送 JSON-RPC `tools/call` 请求，默认仍使用 mock client。
+- 2026-05-06：新增 Streamable HTTP MCP Client adapter 骨架，配置开启后可向选中 MCP Server endpoint 发送 JSON-RPC `tools/call` 请求，默认仍使用 mock client；2026-05-29 已替换为官方 Python MCP SDK adapter。
 - 2026-05-06：新增 Nacos Discovery OpenAPI 适配骨架，配置开启时可按 service_names 拉取 Nacos 实例并复用 metadata parser，默认仍使用 mock。
 - 2026-05-06：新增工具 schema registry、`GET /api/v1/tools/{toolName}/schema` 接口和基于 inputSchema 的必填参数校验。
 - 2026-05-06：新增 `config/mcp-gateway.yaml` 与配置加载模块，将 app/tool 权限从硬编码改为 YAML 配置。

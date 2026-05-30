@@ -26,7 +26,7 @@ class McpServerRegistration:
     weight: int = 100
     enabled: bool = True
     healthy: bool = True
-    ephemeral: bool = True
+    ephemeral: bool = False
 
 
 class NacosMcpServerRegistrar:
@@ -59,7 +59,10 @@ class NacosMcpServerRegistrar:
             "enabled": str(registration.enabled).lower(),
             "healthy": str(registration.healthy).lower(),
             "ephemeral": str(registration.ephemeral).lower(),
-            "metadata": json.dumps(registration.metadata, ensure_ascii=False),
+            "metadata": json.dumps(
+                {"mcp": json.dumps(registration.metadata, ensure_ascii=False)},
+                ensure_ascii=False,
+            ),
         }
         if self._config.namespace:
             payload["namespaceId"] = self._config.namespace

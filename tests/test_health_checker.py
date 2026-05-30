@@ -23,6 +23,17 @@ def test_apply_health_checks_marks_instance_unhealthy():
     assert instances[0].healthy is True
 
 
+def test_apply_health_checks_can_recover_discovery_unhealthy_instance():
+    instances = [
+        MockDiscoveryClient().list_instances()[0].model_copy(update={"healthy": False})
+    ]
+
+    checked = apply_health_checks(instances, FixedHealthChecker(healthy=True))
+
+    assert checked[0].healthy is True
+    assert instances[0].healthy is False
+
+
 def test_runtime_excludes_failed_health_check_from_catalog():
     catalog = ToolCatalog()
     runtime = GatewayRuntime(

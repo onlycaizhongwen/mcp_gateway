@@ -9,16 +9,11 @@ admin:
   allowed_app_ids:
     - internal-ai-agent
 
-audit:
-  mode: logging
-  file:
-    path: logs/mcp-gateway-audit.jsonl
-
 state_backend:
-  mode: memory
+  mode: redis
   redis:
     url: redis://127.0.0.1:6379/0
-    key_prefix: mcp-gateway
+    key_prefix: mcp-gateway-local
     socket_timeout_seconds: 1
 
 circuit_breaker:
@@ -34,11 +29,6 @@ catalog_refresh:
   enabled: false
   interval_seconds: 30
 
-schema_registry:
-  mode: memory
-  nacos_config:
-    group: MCP_SCHEMA_GROUP
-
 nacos:
   enabled: false
   endpoint: http://127.0.0.1:8848
@@ -46,8 +36,6 @@ nacos:
   group: MCP_SERVER_GROUP
   service_names:
     - mcp-server-knowledge
-    - mcp-server-approval
-    - mcp-server-document
   username:
   password:
   timeout_seconds: 3
@@ -55,23 +43,11 @@ nacos:
 permissions:
   apps:
     - app_id: internal-ai-agent
-      credential_ref: kms://mcp/apps/internal-ai-agent
-      tenants:
-        - tenant-a
-        - tenant-b
-      allowed_tools:
-        - knowledge.search
-        - approval.create_task
-        - document.generate
-      rate_limit:
-        qps: 20
-        burst: 50
-    - app_id: demo-app
-      credential_ref: local://demo
+      credential_ref: local://internal-ai-agent
       tenants:
         - tenant-a
       allowed_tools:
         - knowledge.search
       rate_limit:
-        qps: 5
-        burst: 10
+        qps: 1
+        burst: 1

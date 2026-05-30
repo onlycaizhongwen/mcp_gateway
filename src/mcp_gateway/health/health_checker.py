@@ -38,6 +38,6 @@ def apply_health_checks(
 ) -> list[McpServerInstance]:
     checked: list[McpServerInstance] = []
     for instance in instances:
-        healthy = instance.healthy and checker.is_healthy(instance)
+        healthy = checker.is_healthy(instance)
         checked.append(instance.model_copy(update={"healthy": healthy}))
     return checked

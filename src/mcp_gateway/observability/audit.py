@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Protocol
+
+from mcp_gateway.config.gateway_config import GatewayConfig
 
 
 @dataclass(frozen=True)
@@ -52,3 +57,32 @@ class InMemoryAuditLogger:
 
     def record_tool_call(self, event: ToolCallAuditEvent) -> None:
         self.events.append(event)
+
+
+class JsonlFileAuditLogger:
+    def __init__(self, path: str | Path) -> None:
+        self._path = Path(path)
+
+    def record_tool_call(self, event: ToolCallAuditEvent) -> None:
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "trace_id": event.trace_id,
+            "request_id": event.request_id,
+            "app_id": event.app_id,
+            "tenant_id": event.tenant_id,
+            "tool_name": event.tool_name,
+            "result_code": event.result_code,
+            "duration_ms": event.duration_ms,
+            "route_instance_id": event.route_instance_id,
+            "route_service_name": event.route_service_name,
+            "argument_keys": event.argument_keys,
+        }
+        with self._path.open("a", encoding="utf-8") as file:
+            file.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+
+def create_audit_logger(config: GatewayConfig) -> AuditLogger:
+    if config.audit.mode == "file":
+        return JsonlFileAuditLogger(config.audit.file.path)
+    return LoggingAuditLogger()

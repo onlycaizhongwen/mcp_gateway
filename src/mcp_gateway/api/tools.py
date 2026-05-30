@@ -9,6 +9,7 @@ from mcp_gateway.client.base import McpClient
 from mcp_gateway.domain.errors import ErrorCode, GatewayError
 from mcp_gateway.domain.models import ToolCallRequest
 from mcp_gateway.observability.audit import AuditLogger, ToolCallAuditEvent
+from mcp_gateway.observability.metrics import MetricsRegistry
 from mcp_gateway.observability.trace import ensure_request_id, ensure_trace_id
 from mcp_gateway.policy.auth_context import AuthContext
 from mcp_gateway.policy.policy_checker import PolicyChecker
@@ -28,6 +29,7 @@ def create_tools_router(
     audit_logger: AuditLogger,
     circuit_breaker: CircuitBreaker | None = None,
     rate_limiter: RateLimiter | None = None,
+    metrics: MetricsRegistry | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["tools"])
 
@@ -101,6 +103,7 @@ def create_tools_router(
                     circuit_breaker.record_failure(route.selected_instance.instance_id)
             raise
         finally:
+            duration_ms = (perf_counter() - started_at) * 1000
             audit_logger.record_tool_call(
                 ToolCallAuditEvent(
                     trace_id=trace_id,
@@ -109,11 +112,13 @@ def create_tools_router(
                     tenant_id=body.tenant_id,
                     tool_name=tool_name,
                     result_code=result_code,
-                    duration_ms=(perf_counter() - started_at) * 1000,
+                    duration_ms=duration_ms,
                     route_instance_id=route.selected_instance.instance_id if route else None,
                     route_service_name=route.selected_instance.service_name if route else None,
                     argument_keys=sorted(body.arguments.keys()),
                 )
             )
+            if metrics is not None:
+                metrics.record_tool_call(tool_name, result_code, duration_ms)
 
     return router

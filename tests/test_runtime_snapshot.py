@@ -4,6 +4,7 @@ import time
 from mcp_gateway.catalog.tool_catalog import ToolCatalog
 from mcp_gateway.discovery.mock_discovery import MockDiscoveryClient
 from mcp_gateway.domain.models import McpServerInstance
+from mcp_gateway.observability.metrics import MetricsRegistry
 from mcp_gateway.routing.router_scheduler import RouterScheduler
 from mcp_gateway.runtime import GatewayRuntime
 
@@ -75,3 +76,19 @@ def test_runtime_auto_refresh_runs_until_stopped():
 
     assert calls_after_stop >= 2
     assert discovery.calls == calls_after_stop
+
+
+def test_runtime_records_catalog_metrics_for_success_and_snapshot_failure():
+    catalog = ToolCatalog()
+    discovery = FlakyDiscovery()
+    metrics = MetricsRegistry()
+    runtime = GatewayRuntime(discovery, catalog, RouterScheduler(catalog), metrics=metrics)
+
+    runtime.refresh_catalog()
+    discovery.failed = True
+    runtime.refresh_catalog()
+
+    text = metrics.render_prometheus()
+    assert 'mcp_gateway_catalog_refresh_total{result="success"} 1' in text
+    assert 'mcp_gateway_catalog_refresh_total{result="snapshot"} 1' in text
+    assert "mcp_gateway_catalog_tools 3" in text

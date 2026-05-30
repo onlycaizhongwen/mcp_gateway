@@ -103,6 +103,48 @@ catalog_refresh:
     assert config.catalog_refresh.interval_seconds == 15
 
 
+def test_load_schema_registry_config_from_yaml(tmp_path: Path):
+    config_file = tmp_path / "gateway.yaml"
+    config_file.write_text(
+        """
+schema_registry:
+  mode: nacos_config
+  nacos_config:
+    endpoint: http://nacos.example.com:8848
+    namespace: dev
+    group: MCP_SCHEMA_GROUP
+    timeout_seconds: 4
+""",
+        encoding="utf-8",
+    )
+
+    config = load_gateway_config(config_file)
+
+    assert config.schema_registry.mode == "nacos_config"
+    assert config.schema_registry.nacos_config.endpoint == "http://nacos.example.com:8848"
+    assert config.schema_registry.nacos_config.namespace == "dev"
+    assert config.schema_registry.nacos_config.group == "MCP_SCHEMA_GROUP"
+    assert config.schema_registry.nacos_config.timeout_seconds == 4
+
+
+def test_load_audit_config_from_yaml(tmp_path: Path):
+    config_file = tmp_path / "gateway.yaml"
+    config_file.write_text(
+        """
+audit:
+  mode: file
+  file:
+    path: logs/custom-audit.jsonl
+""",
+        encoding="utf-8",
+    )
+
+    config = load_gateway_config(config_file)
+
+    assert config.audit.mode == "file"
+    assert config.audit.file.path == "logs/custom-audit.jsonl"
+
+
 def test_policy_checker_uses_config():
     config = load_gateway_config("config/mcp-gateway.yaml")
     checker = PolicyChecker(config=config)

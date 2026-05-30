@@ -15,15 +15,16 @@
   - `GET /api/v1/tools/{toolName}/schema`
   - `POST /api/v1/tools/{toolName}/execute`
 - Mock MCP client，支持知识库搜索、审批任务创建、文档生成三类演示工具。
-- 可选 Streamable HTTP MCP client adapter。
+- 可选官方 Python MCP SDK Streamable HTTP client adapter。
 - 基于 `app_id` 的基础权限校验。
 - 从 `config/mcp-gateway.yaml` 加载 YAML 权限配置。
-- 内存版 schema registry 和工具 schema 查询。
+- 可插拔 schema registry，默认内存样例，可选 Nacos Config 后端。
 - traceId / requestId 统一响应封装。
-- 最小审计日志，记录调用路由、耗时和结果码，不记录参数明文。
+- 可插拔审计，默认日志输出，可选 JSONL 文件落地；记录调用路由、耗时和结果码，不记录参数明文。
+- Prometheus 文本格式 `/metrics` 指标出口，记录工具调用结果、耗时汇总和 Catalog 刷新快照。
 - Admin API，支持 Catalog 状态查询和手动刷新。
-- 最小内存熔断。
-- 基础内存限流，按 app、tenant、tool 维度控制调用。
+- 可插拔熔断，默认内存后端，可选 Redis 共享状态后端。
+- 可插拔限流，按 app、tenant、tool 维度控制调用，默认内存后端，可选 Redis token bucket。
 - 可选主动健康检查。
 - Nacos discovery 失败后保留最后一次成功 Catalog 快照。
 - 可选定时 Catalog 刷新，无需手动调用 admin refresh。
@@ -95,7 +96,7 @@ python examples/register_mcp_server_to_nacos.py `
 
 ## MCP Client 配置
 
-调用真实 MCP Server 时，可开启 Streamable HTTP adapter：
+调用真实 MCP Server 时，可开启官方 Python MCP SDK Streamable HTTP adapter：
 
 ```yaml
 mcp_client:
@@ -104,6 +105,33 @@ mcp_client:
 ```
 
 ## 治理配置
+
+治理状态后端默认使用进程内内存，适合本地演示和单实例运行：
+
+```yaml
+state_backend:
+  mode: memory
+```
+
+多 Gateway 副本部署时，可切换到 Redis 共享状态后端：
+
+```yaml
+state_backend:
+  mode: redis
+  redis:
+    url: redis://127.0.0.1:6379/0
+    key_prefix: mcp-gateway
+    socket_timeout_seconds: 1
+```
+
+本地 Redis 联调：
+
+```powershell
+docker compose -f docker-compose.redis.yml up -d
+python examples/redis_governance_smoke.py
+```
+
+当前本地验证结果：真实 Redis 中限流桶和熔断打开状态均可跨两个 Gateway 治理对象共享。
 
 熔断配置：
 
@@ -143,6 +171,31 @@ catalog_refresh:
   interval_seconds: 30
 ```
 
+Schema registry 默认使用内存样例，适合本地演示：
+
+```yaml
+schema_registry:
+  mode: memory
+```
+
+测试环境可切换到 Nacos Config。`nacos://mcp-schemas/knowledge.search/1.0.0/input` 会映射为 `dataId=mcp-schemas__knowledge.search__1.0.0__input.json`：
+
+```yaml
+schema_registry:
+  mode: nacos_config
+  nacos_config:
+    group: MCP_SCHEMA_GROUP
+```
+
+审计默认写日志。需要文件落地时，可切换为 JSONL：
+
+```yaml
+audit:
+  mode: file
+  file:
+    path: logs/mcp-gateway-audit.jsonl
+```
+
 ## 示例调用
 
 查询工具列表：
@@ -169,6 +222,12 @@ Invoke-RestMethod `
   -Method Post `
   -Uri http://127.0.0.1:8000/api/v1/admin/catalog/refresh `
   -Headers @{"x-app-id"="internal-ai-agent"}
+```
+
+查看 Prometheus 指标：
+
+```powershell
+Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/metrics
 ```
 
 调用知识库搜索：
@@ -207,7 +266,7 @@ Invoke-RestMethod `
 python -m pytest
 ```
 
-当前验证结果：`52 passed`。
+当前验证结果：`74 passed`。
 
 ## 交付说明
 
@@ -221,9 +280,7 @@ docs/codex/v1/delivery/mcp-gateway-mvp-delivery.md
 
 ## 待完成事项
 
-- 替换最小 Streamable HTTP client 为官方 Python MCP SDK adapter。
-- 将内存 schema registry 替换为 Nacos Config 或独立元数据服务。
 - 完成真实 Nacos 测试环境联调。
-- 将限流、熔断升级为分布式或基础设施层方案。
+- 对 Redis 限流、熔断共享状态做生产压测，并基于 `/metrics` 接入生产指标告警。
 - 接入真实知识库、审批、文档业务系统。
-- 补充生产级指标、审计落库和告警能力。
+- 接入公司审计中心/日志平台、告警规则和指标平台采集配置。

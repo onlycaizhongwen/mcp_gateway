@@ -6,11 +6,12 @@ from fastapi.testclient import TestClient
 from mcp_gateway.api.tools import create_tools_router
 from mcp_gateway.catalog.tool_catalog import ToolCatalog
 from mcp_gateway.discovery.mock_discovery import MockDiscoveryClient
+from mcp_gateway.config.gateway_config import RedisStateConfig
 from mcp_gateway.domain.errors import ErrorCode, GatewayError
 from mcp_gateway.domain.models import ToolRoute
 from mcp_gateway.observability.audit import InMemoryAuditLogger
 from mcp_gateway.policy.policy_checker import PolicyChecker
-from mcp_gateway.routing.circuit_breaker import CircuitBreaker
+from mcp_gateway.routing.circuit_breaker import CircuitBreaker, RedisCircuitBreakerStore
 from mcp_gateway.routing.router_scheduler import RouterScheduler
 from mcp_gateway.schema.schema_registry import SchemaRegistry
 
@@ -29,6 +30,26 @@ class ManualClock:
 class FailingMcpClient:
     def call_tool(self, route: ToolRoute, arguments: dict[str, Any]) -> dict[str, Any]:
         raise GatewayError(ErrorCode.TOOL_EXECUTION_FAILED, "downstream failed", 502)
+
+
+class FakeRedis:
+    def __init__(self) -> None:
+        self.values = {}
+        self.now = 0.0
+
+    def eval(self, _script, _key_count, key, threshold, _ttl_ms):
+        state = self.values.setdefault(key, {})
+        failure_count = int(state.get("failure_count", 0)) + 1
+        state["failure_count"] = failure_count
+        if failure_count >= int(threshold):
+            state["opened_at"] = str(self.now)
+        return failure_count
+
+    def hget(self, key, field):
+        return self.values.get(key, {}).get(field)
+
+    def delete(self, key):
+        self.values.pop(key, None)
 
 
 def build_catalog() -> ToolCatalog:
@@ -53,6 +74,29 @@ def test_circuit_breaker_opens_and_half_opens_after_recovery_window():
 
     breaker.record_success("knowledge-1")
     assert breaker.snapshot() == {}
+
+
+def test_circuit_breaker_can_use_redis_store_for_shared_state():
+    clock = ManualClock()
+    fake_redis = FakeRedis()
+    store = RedisCircuitBreakerStore(
+        RedisStateConfig(key_prefix="test"),
+        redis_client=fake_redis,
+    )
+    breaker_a = CircuitBreaker(failure_threshold=2, recovery_seconds=10, now=clock, store=store)
+    breaker_b = CircuitBreaker(failure_threshold=2, recovery_seconds=10, now=clock, store=store)
+
+    breaker_a.record_failure("knowledge-1")
+    assert breaker_b.can_call("knowledge-1")
+
+    breaker_b.record_failure("knowledge-1")
+    assert not breaker_a.can_call("knowledge-1")
+
+    clock.advance(10)
+    assert breaker_a.can_call("knowledge-1")
+
+    breaker_b.record_success("knowledge-1")
+    assert breaker_a.can_call("knowledge-1")
 
 
 def test_router_skips_open_instance():

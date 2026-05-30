@@ -66,7 +66,8 @@ def test_register_instance_posts_nacos_form(monkeypatch):
     assert body["namespaceId"] == ["dev"]
     assert body["ip"] == ["10.0.0.12"]
     assert body["port"] == ["18081"]
-    assert metadata["tools"][0]["name"] == "knowledge.search"
+    mcp_metadata = json.loads(metadata["mcp"])
+    assert mcp_metadata["tools"][0]["name"] == "knowledge.search"
 
 
 def test_register_instance_uses_access_token(monkeypatch):

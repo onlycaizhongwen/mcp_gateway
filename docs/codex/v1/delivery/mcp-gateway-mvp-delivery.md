@@ -31,7 +31,7 @@
 - MCP Server metadata parser。
 - Tool Catalog 聚合与查询。
 - Router/Scheduler 工具路由。
-- Streamable HTTP JSON-RPC MCP Client adapter 骨架。
+- 官方 Python MCP SDK Streamable HTTP Client adapter。
 - Mock MCP Client。
 - 三类演示 Tool：
   - `knowledge.search`
@@ -46,16 +46,20 @@
   - `POST /api/v1/admin/catalog/refresh`
 - YAML 配置加载。
 - app / tenant / tool 权限校验。
+- 可插拔 schema registry，默认内存样例，可选 Nacos Config 后端。
 - schema 查询和必填参数校验。
 - traceId / requestId 透传。
 - 统一响应 envelope 和错误码。
-- 最小审计日志。
-- 基础内存限流。
-- 最小内存熔断。
+- 可插拔审计，默认日志输出，可选 JSONL 文件落地，不记录参数明文。
+- Prometheus 文本格式 `/metrics` 指标出口，覆盖工具调用结果、耗时汇总和 Catalog 刷新快照。
+- 可插拔限流，默认内存后端，可选 Redis token bucket 共享状态后端。
+- 可插拔熔断，默认内存后端，可选 Redis 共享状态后端。
+- 本地 Docker Redis 联调配置和治理共享状态 smoke 验证脚本。
 - 可选主动健康检查。
 - Discovery 失败保留最后一次 Catalog 快照。
 - 可选定时 Catalog 刷新。
 - MCP Server 注册 Nacos 的 Python helper 和命令行示例。
+- 本地 Docker Nacos 联调配置、示例 MCP Server 和 Nacos 专用 Gateway 配置。
 
 ### 2.2 文档产物
 
@@ -75,6 +79,13 @@
 
 - MCP Server 注册 helper：`src/mcp_gateway/examples/nacos_registration.py`
 - 注册命令行示例：`examples/register_mcp_server_to_nacos.py`
+- 本地示例 MCP Server：`examples/mock_mcp_server.py`
+- 本地 Nacos compose：`docker-compose.nacos.yml`
+- 本地 Redis compose：`docker-compose.redis.yml`
+- Redis 治理 smoke 脚本：`examples/redis_governance_smoke.py`
+- 本地 Nacos Gateway 配置：`config/mcp-gateway-nacos-local.yaml`
+- Nacos Config schema 发布示例：`examples/publish_schemas_to_nacos.py`
+- 本地 Redis Gateway 配置：`config/mcp-gateway-redis-local.yaml`
 - Mock metadata：`src/mcp_gateway/examples/sample_metadata.py`
 - Mock schemas：`src/mcp_gateway/examples/sample_schemas.py`
 
@@ -194,7 +205,7 @@ python examples/register_mcp_server_to_nacos.py `
 当前本地测试结果：
 
 ```text
-52 passed
+74 passed
 ```
 
 覆盖范围包括：
@@ -203,23 +214,27 @@ python examples/register_mcp_server_to_nacos.py `
 - Admin Catalog status / refresh。
 - admin 权限保护。
 - 权限配置加载。
-- schema 必填参数校验。
+- schema 必填参数校验，包括内存后端和 Nacos Config 后端。
+- Nacos Config schema 发布 helper。
 - metadata parser。
 - Nacos discovery adapter。
 - MCP Server 注册 helper。
 - Catalog / Router。
-- audit 日志。
-- rate limiter。
-- circuit breaker。
+- audit 日志和 JSONL 文件审计落地。
+- metrics 指标出口，包括工具调用计数、耗时汇总和 Catalog 刷新指标。
+- rate limiter，包括内存后端和 Redis 共享状态后端。
+- circuit breaker，包括内存后端和 Redis 共享状态后端。
 - health checker。
 - Discovery 失败保留快照。
-- Streamable HTTP MCP Client adapter。
+- 官方 Python MCP SDK Streamable HTTP Client adapter。
+- 本地 Nacos 注册、发现、主动健康检查和 Streamable HTTP 调用联调。
+- 本地 Redis 真实后端 smoke：限流桶和熔断打开状态可跨两个 Gateway 治理对象共享。
 
 ## 7. 对外交付口径
 
 建议对外交付时使用以下口径：
 
-> 当前版本为 MCP Gateway MVP / Nacos 联调样例版，已完成 MCP Server 注册元数据约定、Nacos 发现适配、Tool Catalog、工具路由、三类 Tool mock 演示、权限、审计、限流、熔断、健康检查和注册示例。该版本可用于架构验证、本地演示和测试环境联调；生产上线前仍需完成真实 Nacos/MCP Server 联调、真实业务系统接入、统一鉴权和分布式治理能力增强。
+> 当前版本为 MCP Gateway MVP / Nacos 联调样例版，已完成 MCP Server 注册元数据约定、Nacos 发现适配、Nacos Config schema 发布与读取、Tool Catalog、工具路由、三类 Tool mock 演示、权限、JSONL 审计落地、Prometheus `/metrics` 基础指标、可插拔限流/熔断、健康检查、注册示例和本地 Docker Nacos 联调。该版本可用于架构验证、本地演示和测试环境联调；生产上线前仍需完成公司测试/生产 Nacos 环境参数验证、真实业务系统接入、统一鉴权、审计中心/日志平台接入和生产告警规则配置。
 
 ## 8. 待完成事项
 
@@ -227,20 +242,20 @@ python examples/register_mcp_server_to_nacos.py `
 
 | 待办 | 说明 | 优先级 |
 | --- | --- | --- |
-| 真实 Nacos 联调 | 验证 endpoint、namespace、group、serviceName、鉴权和 metadata 嵌套格式 | 高 |
+| 公司测试/生产 Nacos 环境参数验证 | 本地 Docker Nacos 已验证 discovery、schema config、健康检查和调用链路；仍需验证公司环境 endpoint、namespace、group、serviceName、鉴权和网络策略 | 高 |
 | 真实 MCP Server 注册 | 将注册 helper 嵌入 MCP Server 启动/关闭生命周期 | 高 |
-| 真实 Streamable HTTP 调用 | 用真实 MCP Server endpoint 验证 `tools/call` | 高 |
-| 健康检查联调 | 验证 MCP Server `/health` 与 Gateway 主动探活策略 | 中 |
+| 真实业务 MCP Server 调用 | 本地示例 MCP Server 已验证 `tools/call`；仍需用真实业务 MCP Server endpoint 验证 | 高 |
+| 生产心跳策略 | 示例注册使用非临时实例；生产如使用 ephemeral 实例，需要嵌入 Nacos 心跳/生命周期管理 | 中 |
 
 ### 8.2 生产化治理
 
 | 待办 | 说明 | 优先级 |
 | --- | --- | --- |
-| 分布式限流 | 当前限流为进程内 token bucket，多副本需改 Redis、网关或服务网格方案 | 高 |
-| 分布式熔断/指标 | 当前熔断为进程内状态，需接入指标系统或共享状态 | 高 |
+| Redis 限流压测 | 已通过本地 Docker Redis smoke 验证共享限流桶，多副本上线前需做生产压测和评估降级策略 | 高 |
+| Redis 熔断压测和指标 | 已通过本地 Docker Redis smoke 验证共享熔断状态，并具备 `/metrics` 基础出口；多副本上线前需压测恢复窗口并配置生产告警 | 高 |
 | 统一鉴权 | 当前使用 `app_id` 和配置授权，需对接统一认证/权限中心 | 高 |
-| 审计落库或日志平台 | 当前为日志记录，应接 ES、日志平台或审计中心 | 中 |
-| Metrics 指标 | 补 Prometheus 或内部指标平台埋点 | 中 |
+| 审计中心/日志平台接入 | 当前已支持日志输出和 JSONL 文件落地；生产仍需接 ES、日志平台或审计中心 | 中 |
+| Metrics 指标平台接入 | 当前已提供 Prometheus 文本格式 `/metrics`，仍需接入公司指标平台、补齐采集配置和告警规则 | 中 |
 
 ### 8.3 发现与路由增强
 
@@ -264,26 +279,25 @@ python examples/register_mcp_server_to_nacos.py `
 
 | 待办 | 说明 | 优先级 |
 | --- | --- | --- |
-| 官方 MCP SDK adapter | 当前 Streamable HTTP client 是最小 JSON-RPC adapter | 中 |
 | MCP 协议版本兼容 | metadata 已声明协议版本，后续需补多版本兼容策略 | 中 |
-| schema 存储迁移 | 当前 schema 在内存样例中，后续可迁移到 Nacos Config 或元数据服务 | 中 |
+| schema 元数据服务演进 | 已支持 Nacos Config 后端；如后续需要版本审核、发布流和多环境回滚，可升级为独立元数据服务 | 中 |
 
 ## 9. 已知限制
 
-- 当前默认使用 mock discovery 和 mock MCP client。
+- 当前默认使用 mock discovery、mock MCP client 和内存 schema registry；开启 `mcp_client.mode=streamable-http` 后使用官方 Python MCP SDK adapter，开启 `schema_registry.mode=nacos_config` 后从 Nacos Config 读取 schema。
 - 当前三类 Tool 均为演示链路，不包含真实业务逻辑。
-- 当前 Nacos adapter 未经过真实 Nacos 测试环境验证。
-- 当前限流、熔断为进程内实现，不适合多实例生产部署。
-- 当前没有完整指标系统和审计持久化。
+- 当前已通过本地 Docker Nacos 验证注册、发现、Nacos Config schema 读取和调用链路，尚未经过公司测试/生产 Nacos 环境验证。
+- 当前限流、熔断已支持内存和 Redis 后端，并通过本地 Docker Redis smoke；生产多实例部署前仍需压测、容量评估和降级策略。
+- 当前已提供基础 `/metrics` 指标出口和 JSONL 文件审计落地，但尚未接入公司指标平台、生产告警规则和审计中心。
 - 当前没有 Nacos watch 推送，仅支持手动 refresh 和可选定时 refresh。
 
 ## 10. 建议下一步
 
-建议下一步优先完成真实 Nacos 测试环境联调：
+建议下一步优先完成公司测试/生产 Nacos 环境参数验证：
 
-1. 确认 Nacos `endpoint`、`namespace`、`group`、鉴权方式。
-2. 使用注册示例注册 `mcp-server-knowledge`。
-3. Gateway 开启 `discovery.mode=nacos` 和 `nacos.enabled=true`。
-4. 调用 Admin refresh/status 验证 Catalog。
-5. 开启 `mcp_client.mode=streamable-http`，验证真实 MCP `tools/call`。
-6. 将联调差异回写到 `mcp-gateway-nacos-integration-guide.md`。
+1. 确认测试环境 Nacos `endpoint`、`namespace`、`group`、鉴权方式和网络策略。
+2. 将注册 helper 嵌入真实 MCP Server 启动/关闭生命周期。
+3. 如使用 Nacos ephemeral 实例，补齐心跳或使用服务自身 Nacos SDK 注册。
+4. Gateway 开启 `discovery.mode=nacos`、`nacos.enabled=true` 和 `mcp_client.mode=streamable-http`。
+5. 调用 Admin refresh/status 验证 Catalog，并用真实 MCP Server 验证 `tools/call`。
+6. 将测试环境差异回写到 `mcp-gateway-nacos-integration-guide.md`。

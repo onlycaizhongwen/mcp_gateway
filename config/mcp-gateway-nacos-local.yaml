@@ -1,18 +1,13 @@
 discovery:
-  mode: mock
+  mode: nacos
 
 mcp_client:
-  mode: mock
+  mode: streamable-http
   timeout_seconds: 10
 
 admin:
   allowed_app_ids:
     - internal-ai-agent
-
-audit:
-  mode: logging
-  file:
-    path: logs/mcp-gateway-audit.jsonl
 
 state_backend:
   mode: memory
@@ -27,7 +22,7 @@ circuit_breaker:
   recovery_seconds: 30
 
 health_check:
-  enabled: false
+  enabled: true
   timeout_seconds: 1
 
 catalog_refresh:
@@ -35,19 +30,17 @@ catalog_refresh:
   interval_seconds: 30
 
 schema_registry:
-  mode: memory
+  mode: nacos_config
   nacos_config:
     group: MCP_SCHEMA_GROUP
 
 nacos:
-  enabled: false
+  enabled: true
   endpoint: http://127.0.0.1:8848
-  namespace: dev
+  namespace:
   group: MCP_SERVER_GROUP
   service_names:
     - mcp-server-knowledge
-    - mcp-server-approval
-    - mcp-server-document
   username:
   password:
   timeout_seconds: 3
@@ -55,23 +48,12 @@ nacos:
 permissions:
   apps:
     - app_id: internal-ai-agent
-      credential_ref: kms://mcp/apps/internal-ai-agent
+      credential_ref: local://internal-ai-agent
       tenants:
         - tenant-a
         - tenant-b
       allowed_tools:
         - knowledge.search
-        - approval.create_task
-        - document.generate
       rate_limit:
         qps: 20
         burst: 50
-    - app_id: demo-app
-      credential_ref: local://demo
-      tenants:
-        - tenant-a
-      allowed_tools:
-        - knowledge.search
-      rate_limit:
-        qps: 5
-        burst: 10

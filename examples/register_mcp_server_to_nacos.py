@@ -13,7 +13,7 @@ from mcp_gateway.examples.nacos_registration import (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Register an example MCP Server to Nacos.")
     parser.add_argument("--endpoint", default="http://127.0.0.1:8848")
-    parser.add_argument("--namespace", default="dev")
+    parser.add_argument("--namespace")
     parser.add_argument("--group", default="MCP_SERVER_GROUP")
     parser.add_argument("--service-name", default="mcp-server-knowledge")
     parser.add_argument("--ip", default="127.0.0.1")
