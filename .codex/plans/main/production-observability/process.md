@@ -3,10 +3,10 @@
 ## 1. 恢复胶囊
 
 - 任务需求：在已有 MCP Gateway MVP 基础上补齐生产级指标基础能力。
-- 关键决策：先实现无新增依赖的 Prometheus 文本格式 `/metrics`，覆盖工具调用、结果码、耗时汇总和 Catalog 刷新快照；审计先落 JSONL 文件，告警规则、审计中心和指标平台采集作为后续生产接入事项。
-- 当前阶段：已完成基础指标实现和文档同步。
-- 已完成产物：`src/mcp_gateway/observability/metrics.py`、`/metrics` endpoint、工具调用与 Catalog 刷新埋点、测试和文档更新。
-- 剩余工作：接入公司指标平台、配置告警规则、接入审计中心、生产压测。
+- 关键决策：先实现无新增依赖的 Prometheus 文本格式 `/metrics`，覆盖工具调用、结果码、耗时汇总和 Catalog 刷新快照；审计先落 JSONL 文件；告警先提供 Prometheus 样例规则，生产接入时再按压测结果校准阈值。
+- 当前阶段：已完成基础指标、JSONL 审计、告警规则样例和文档同步。
+- 已完成产物：`src/mcp_gateway/observability/metrics.py`、`/metrics` endpoint、工具调用与 Catalog 刷新埋点、JSONL 审计、`deploy/prometheus/mcp-gateway-alerts.yml`、`docs/codex/v1/operations/mcp-gateway-observability.md`、测试和文档更新。
+- 剩余工作：接入公司指标平台、接入审计中心、生产压测并校准告警阈值。
 - 重要发现：本地 Docker Nacos mock 数据联调已完成，不应再描述为“本地 Nacos 未联调”；剩余是公司测试/生产环境参数验证。
 
 ## 2. 步骤列表
@@ -16,7 +16,7 @@
 - [v] 在工具调用和 Catalog 刷新路径记录指标。
 - [v] 暴露 `/metrics` endpoint。
 - [v] 补充测试和文档状态。
-- [~] 下一步：接入公司指标平台采集与告警规则，或将 JSONL 审计文件接入公司审计中心。
+- [~] 下一步：接入公司指标平台采集，或将 JSONL 审计文件接入公司审计中心。
 
 ## 3. 研究发现
 
@@ -41,3 +41,12 @@
 
 - `python -m pytest tests/test_audit.py tests/test_config_policy.py tests/test_api.py`：26 passed。
 - `python -m pytest`：74 passed。
+- `python -m pytest tests/test_observability_docs.py`：1 passed。
+- `python -m pytest`：75 passed。
+
+## 7. 告警规则样例推进
+
+- [v] 新增 Prometheus 告警规则样例 `deploy/prometheus/mcp-gateway-alerts.yml`。
+- [v] 新增观测接入说明 `docs/codex/v1/operations/mcp-gateway-observability.md`。
+- [v] 补充规则文件结构测试，确认核心告警和指标引用存在。
+- [~] 下一步：接入公司 Prometheus/指标平台并按压测结果校准阈值。

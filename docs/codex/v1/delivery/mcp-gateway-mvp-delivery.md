@@ -52,6 +52,7 @@
 - 统一响应 envelope 和错误码。
 - 可插拔审计，默认日志输出，可选 JSONL 文件落地，不记录参数明文。
 - Prometheus 文本格式 `/metrics` 指标出口，覆盖工具调用结果、耗时汇总和 Catalog 刷新快照。
+- Prometheus 告警规则样例和观测接入说明。
 - 可插拔限流，默认内存后端，可选 Redis token bucket 共享状态后端。
 - 可插拔熔断，默认内存后端，可选 Redis 共享状态后端。
 - 本地 Docker Redis 联调配置和治理共享状态 smoke 验证脚本。
@@ -72,6 +73,7 @@
 - 执行计划：`docs/codex/v1/plans/mcp-gateway-nacos-discovery-plan.md`
 - Trace 审查：`docs/codex/v1/trace/mcp-gateway-nacos-discovery-trace.md`
 - Nacos 联调说明：`docs/codex/v1/designs/mcp-gateway-nacos-integration-guide.md`
+- 观测接入说明：`docs/codex/v1/operations/mcp-gateway-observability.md`
 - MCP Server 注册模板：`docs/codex/v1/designs/mcp-server-nacos-registration-template.json`
 - 本交付说明：`docs/codex/v1/delivery/mcp-gateway-mvp-delivery.md`
 
@@ -82,6 +84,7 @@
 - 本地示例 MCP Server：`examples/mock_mcp_server.py`
 - 本地 Nacos compose：`docker-compose.nacos.yml`
 - 本地 Redis compose：`docker-compose.redis.yml`
+- Prometheus 告警规则样例：`deploy/prometheus/mcp-gateway-alerts.yml`
 - Redis 治理 smoke 脚本：`examples/redis_governance_smoke.py`
 - 本地 Nacos Gateway 配置：`config/mcp-gateway-nacos-local.yaml`
 - Nacos Config schema 发布示例：`examples/publish_schemas_to_nacos.py`
@@ -205,7 +208,7 @@ python examples/register_mcp_server_to_nacos.py `
 当前本地测试结果：
 
 ```text
-74 passed
+75 passed
 ```
 
 覆盖范围包括：
@@ -222,6 +225,7 @@ python examples/register_mcp_server_to_nacos.py `
 - Catalog / Router。
 - audit 日志和 JSONL 文件审计落地。
 - metrics 指标出口，包括工具调用计数、耗时汇总和 Catalog 刷新指标。
+- Prometheus 告警规则样例。
 - rate limiter，包括内存后端和 Redis 共享状态后端。
 - circuit breaker，包括内存后端和 Redis 共享状态后端。
 - health checker。
@@ -234,7 +238,7 @@ python examples/register_mcp_server_to_nacos.py `
 
 建议对外交付时使用以下口径：
 
-> 当前版本为 MCP Gateway MVP / Nacos 联调样例版，已完成 MCP Server 注册元数据约定、Nacos 发现适配、Nacos Config schema 发布与读取、Tool Catalog、工具路由、三类 Tool mock 演示、权限、JSONL 审计落地、Prometheus `/metrics` 基础指标、可插拔限流/熔断、健康检查、注册示例和本地 Docker Nacos 联调。该版本可用于架构验证、本地演示和测试环境联调；生产上线前仍需完成公司测试/生产 Nacos 环境参数验证、真实业务系统接入、统一鉴权、审计中心/日志平台接入和生产告警规则配置。
+> 当前版本为 MCP Gateway MVP / Nacos 联调样例版，已完成 MCP Server 注册元数据约定、Nacos 发现适配、Nacos Config schema 发布与读取、Tool Catalog、工具路由、三类 Tool mock 演示、权限、JSONL 审计落地、Prometheus `/metrics` 基础指标、告警规则样例、可插拔限流/熔断、健康检查、注册示例和本地 Docker Nacos 联调。该版本可用于架构验证、本地演示和测试环境联调；生产上线前仍需完成公司测试/生产 Nacos 环境参数验证、真实业务系统接入、统一鉴权、审计中心/日志平台接入和公司指标平台采集配置。
 
 ## 8. 待完成事项
 
@@ -252,10 +256,10 @@ python examples/register_mcp_server_to_nacos.py `
 | 待办 | 说明 | 优先级 |
 | --- | --- | --- |
 | Redis 限流压测 | 已通过本地 Docker Redis smoke 验证共享限流桶，多副本上线前需做生产压测和评估降级策略 | 高 |
-| Redis 熔断压测和指标 | 已通过本地 Docker Redis smoke 验证共享熔断状态，并具备 `/metrics` 基础出口；多副本上线前需压测恢复窗口并配置生产告警 | 高 |
+| Redis 熔断压测和指标 | 已通过本地 Docker Redis smoke 验证共享熔断状态，并具备 `/metrics` 基础出口和告警规则样例；多副本上线前需压测恢复窗口并校准阈值 | 高 |
 | 统一鉴权 | 当前使用 `app_id` 和配置授权，需对接统一认证/权限中心 | 高 |
 | 审计中心/日志平台接入 | 当前已支持日志输出和 JSONL 文件落地；生产仍需接 ES、日志平台或审计中心 | 中 |
-| Metrics 指标平台接入 | 当前已提供 Prometheus 文本格式 `/metrics`，仍需接入公司指标平台、补齐采集配置和告警规则 | 中 |
+| Metrics 指标平台接入 | 当前已提供 Prometheus 文本格式 `/metrics` 和告警规则样例，仍需接入公司指标平台并补齐采集配置 | 中 |
 
 ### 8.3 发现与路由增强
 
@@ -288,7 +292,7 @@ python examples/register_mcp_server_to_nacos.py `
 - 当前三类 Tool 均为演示链路，不包含真实业务逻辑。
 - 当前已通过本地 Docker Nacos 验证注册、发现、Nacos Config schema 读取和调用链路，尚未经过公司测试/生产 Nacos 环境验证。
 - 当前限流、熔断已支持内存和 Redis 后端，并通过本地 Docker Redis smoke；生产多实例部署前仍需压测、容量评估和降级策略。
-- 当前已提供基础 `/metrics` 指标出口和 JSONL 文件审计落地，但尚未接入公司指标平台、生产告警规则和审计中心。
+- 当前已提供基础 `/metrics` 指标出口、Prometheus 告警规则样例和 JSONL 文件审计落地，但尚未接入公司指标平台和审计中心。
 - 当前没有 Nacos watch 推送，仅支持手动 refresh 和可选定时 refresh。
 
 ## 10. 建议下一步

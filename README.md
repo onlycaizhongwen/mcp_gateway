@@ -22,6 +22,7 @@
 - traceId / requestId 统一响应封装。
 - 可插拔审计，默认日志输出，可选 JSONL 文件落地；记录调用路由、耗时和结果码，不记录参数明文。
 - Prometheus 文本格式 `/metrics` 指标出口，记录工具调用结果、耗时汇总和 Catalog 刷新快照。
+- Prometheus 告警规则样例和观测接入说明。
 - Admin API，支持 Catalog 状态查询和手动刷新。
 - 可插拔熔断，默认内存后端，可选 Redis 共享状态后端。
 - 可插拔限流，按 app、tenant、tool 维度控制调用，默认内存后端，可选 Redis token bucket。
@@ -230,6 +231,11 @@ Invoke-RestMethod `
 Invoke-RestMethod -Method Get -Uri http://127.0.0.1:8000/metrics
 ```
 
+观测接入说明和告警规则样例：
+
+- `docs/codex/v1/operations/mcp-gateway-observability.md`
+- `deploy/prometheus/mcp-gateway-alerts.yml`
+
 调用知识库搜索：
 
 ```powershell
@@ -266,7 +272,7 @@ Invoke-RestMethod `
 python -m pytest
 ```
 
-当前验证结果：`74 passed`。
+当前验证结果：`75 passed`。
 
 ## 交付说明
 
@@ -281,6 +287,6 @@ docs/codex/v1/delivery/mcp-gateway-mvp-delivery.md
 ## 待完成事项
 
 - 完成真实 Nacos 测试环境联调。
-- 对 Redis 限流、熔断共享状态做生产压测，并基于 `/metrics` 接入生产指标告警。
+- 对 Redis 限流、熔断共享状态做生产压测，并按公司指标平台校准告警阈值。
 - 接入真实知识库、审批、文档业务系统。
-- 接入公司审计中心/日志平台、告警规则和指标平台采集配置。
+- 接入公司审计中心/日志平台和指标平台采集配置。

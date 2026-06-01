@@ -1,0 +1,76 @@
+groups:
+  - name: mcp-gateway.rules
+    rules:
+      - alert: McpGatewayToolErrorRateHigh
+        expr: |
+          (
+            sum(rate(mcp_gateway_tool_calls_total{result_code!="0"}[5m]))
+            /
+            clamp_min(sum(rate(mcp_gateway_tool_calls_total[5m])), 1)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          component: mcp-gateway
+        annotations:
+          summary: "MCP Gateway tool error rate is high"
+          description: "More than 5% of tool calls failed in the last 5 minutes."
+
+      - alert: McpGatewayToolRateLimitedHigh
+        expr: |
+          sum(rate(mcp_gateway_tool_calls_total{result_code="MCP_RATE_LIMITED"}[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: mcp-gateway
+        annotations:
+          summary: "MCP Gateway rate limiting is elevated"
+          description: "Rate-limited tool calls are above 1 request per second."
+
+      - alert: McpGatewayServerUnavailable
+        expr: |
+          sum(rate(mcp_gateway_tool_calls_total{result_code="MCP_SERVER_UNAVAILABLE"}[5m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: mcp-gateway
+        annotations:
+          summary: "MCP Gateway has unavailable downstream servers"
+          description: "Tool calls are failing because no healthy MCP Server instance is available."
+
+      - alert: McpGatewayCatalogRefreshFailed
+        expr: |
+          sum(rate(mcp_gateway_catalog_refresh_total{result=~"failure|snapshot"}[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: mcp-gateway
+        annotations:
+          summary: "MCP Gateway catalog refresh is degraded"
+          description: "Catalog refresh failed or fell back to the last successful snapshot."
+
+      - alert: McpGatewayNoHealthyInstances
+        expr: |
+          mcp_gateway_catalog_healthy_instances == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: mcp-gateway
+        annotations:
+          summary: "MCP Gateway has no healthy MCP Server instances"
+          description: "The current catalog snapshot contains zero healthy provider instances."
+
+      - alert: McpGatewayAverageLatencyHigh
+        expr: |
+          (
+            sum(rate(mcp_gateway_tool_call_duration_ms_sum[5m]))
+            /
+            clamp_min(sum(rate(mcp_gateway_tool_call_duration_ms_count[5m])), 1)
+          ) > 3000
+        for: 10m
+        labels:
+          severity: warning
+          component: mcp-gateway
+        annotations:
+          summary: "MCP Gateway average tool latency is high"
+          description: "Average tool-call latency is above 3000 ms. Upgrade to histogram metrics before using percentile alerts."
