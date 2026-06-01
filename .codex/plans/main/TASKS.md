@@ -23,3 +23,9 @@
 - 摘要：新增 Prometheus 文本格式 `/metrics` 基础指标出口，覆盖工具调用结果、耗时汇总和 Catalog 刷新快照。
 - 过程文件：.codex/plans/main/production-observability/process.md
 - 恢复提示：后续如继续生产化，优先接公司指标平台采集、告警规则和审计落库。
+
+## mcp-server-registration-lifecycle
+- 状态：已完成
+- 摘要：新增 Python MCP Server 注册生命周期封装，支持启动注册到 Nacos、关闭或异常退出时注销。
+- 过程文件：.codex/plans/main/mcp-server-registration-lifecycle/process.md
+- 恢复提示：后续如继续生产化，优先将该 helper 嵌入真实业务 MCP Server 或补充 Java/其他语言版本。

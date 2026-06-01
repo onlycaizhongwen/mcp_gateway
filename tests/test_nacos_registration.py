@@ -4,6 +4,7 @@ import json
 from urllib.parse import parse_qs
 
 from mcp_gateway.examples.nacos_registration import (
+    McpServerNacosLifecycle,
     McpServerRegistration,
     NacosMcpServerRegistrar,
     NacosRegistrationConfig,
@@ -118,3 +119,156 @@ def test_deregister_instance_posts_delete_form(monkeypatch):
     assert captured["method"] == "DELETE"
     assert body["serviceName"] == ["mcp-server-knowledge"]
     assert body["namespaceId"] == ["dev"]
+
+
+def test_send_heartbeat_puts_nacos_beat_form(monkeypatch):
+    captured = {}
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["method"] = request.get_method()
+        captured["body"] = request.data.decode("utf-8")
+        return FakeResponse("ok")
+
+    monkeypatch.setattr("mcp_gateway.examples.nacos_registration.urlopen", fake_urlopen)
+    registrar = NacosMcpServerRegistrar(NacosRegistrationConfig(namespace="dev"))
+
+    result = registrar.send_heartbeat(
+        McpServerRegistration(
+            service_name="mcp-server-knowledge",
+            ip="10.0.0.12",
+            port=18081,
+            metadata=knowledge_search_metadata(),
+            ephemeral=True,
+        )
+    )
+
+    body = parse_qs(captured["body"])
+    beat = json.loads(body["beat"][0])
+
+    assert result == "ok"
+    assert captured["url"] == "http://127.0.0.1:8848/nacos/v1/ns/instance/beat"
+    assert captured["method"] == "PUT"
+    assert body["serviceName"] == ["mcp-server-knowledge"]
+    assert body["namespaceId"] == ["dev"]
+    assert body["ephemeral"] == ["true"]
+    assert beat["serviceName"] == "mcp-server-knowledge"
+    assert beat["ip"] == "10.0.0.12"
+    assert beat["port"] == 18081
+    assert beat["ephemeral"] is True
+    mcp_metadata = json.loads(beat["metadata"]["mcp"])
+    assert mcp_metadata["tools"][0]["name"] == "knowledge.search"
+
+
+def test_lifecycle_registers_and_deregisters_once():
+    calls = []
+
+    class FakeRegistrar:
+        def register_instance(self, registration):
+            calls.append(
+                ("register", registration.service_name, registration.ip, registration.port)
+            )
+            return "registered"
+
+        def deregister_instance(self, service_name, ip, port):
+            calls.append(("deregister", service_name, ip, port))
+            return "deregistered"
+
+        def send_heartbeat(self, registration):
+            calls.append(("heartbeat", registration.service_name))
+            return "ok"
+
+    registration = McpServerRegistration(
+        service_name="mcp-server-knowledge",
+        ip="10.0.0.12",
+        port=18081,
+        metadata=knowledge_search_metadata(),
+    )
+    lifecycle = McpServerNacosLifecycle(FakeRegistrar(), registration)
+
+    assert lifecycle.start() == "registered"
+    assert lifecycle.start() is None
+    assert lifecycle.registered is True
+    assert lifecycle.stop() == "deregistered"
+    assert lifecycle.stop() is None
+    assert lifecycle.registered is False
+    assert calls == [
+        ("register", "mcp-server-knowledge", "10.0.0.12", 18081),
+        ("deregister", "mcp-server-knowledge", "10.0.0.12", 18081),
+    ]
+
+
+def test_lifecycle_context_manager_deregisters_after_error():
+    calls = []
+
+    class FakeRegistrar:
+        def register_instance(self, registration):
+            calls.append(("register", registration.service_name))
+            return "registered"
+
+        def deregister_instance(self, service_name, ip, port):
+            calls.append(("deregister", service_name))
+            return "deregistered"
+
+        def send_heartbeat(self, registration):
+            calls.append(("heartbeat", registration.service_name))
+            return "ok"
+
+    registration = McpServerRegistration(
+        service_name="mcp-server-knowledge",
+        ip="10.0.0.12",
+        port=18081,
+        metadata=knowledge_search_metadata(),
+    )
+    lifecycle = McpServerNacosLifecycle(FakeRegistrar(), registration)
+
+    try:
+        with lifecycle:
+            raise RuntimeError("server failed")
+    except RuntimeError:
+        pass
+
+    assert lifecycle.registered is False
+    assert calls == [
+        ("register", "mcp-server-knowledge"),
+        ("deregister", "mcp-server-knowledge"),
+    ]
+
+
+def test_lifecycle_sends_heartbeat_for_ephemeral_registration():
+    calls = []
+
+    class FakeRegistrar:
+        def register_instance(self, registration):
+            calls.append(("register", registration.service_name))
+            return "registered"
+
+        def deregister_instance(self, service_name, ip, port):
+            calls.append(("deregister", service_name))
+            return "deregistered"
+
+        def send_heartbeat(self, registration):
+            calls.append(("heartbeat", registration.service_name))
+            return "ok"
+
+    registration = McpServerRegistration(
+        service_name="mcp-server-knowledge",
+        ip="10.0.0.12",
+        port=18081,
+        metadata=knowledge_search_metadata(),
+        ephemeral=True,
+    )
+    lifecycle = McpServerNacosLifecycle(
+        FakeRegistrar(),
+        registration,
+        heartbeat_interval_seconds=60,
+    )
+
+    lifecycle.start()
+    lifecycle.stop()
+
+    assert calls == [
+        ("register", "mcp-server-knowledge"),
+        ("heartbeat", "mcp-server-knowledge"),
+        ("deregister", "mcp-server-knowledge"),
+    ]

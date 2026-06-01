@@ -19,7 +19,7 @@
 
 当前主题已完成 MCP Gateway MVP 的主要闭环：本地 mock discovery、Nacos discovery adapter、Tool Catalog、Router、HTTP API、三类演示 Tool、schema 校验、可插拔 schema registry、权限、审计文件落地、基础 metrics 指标、Prometheus 告警规则样例、限流、熔断、主动健康检查、Catalog 管理接口、本地 Docker Nacos 联调材料和发现失败快照保留策略均已落地。
 
-验证结果：`python -m pytest` 通过，当前测试集 `75 passed`；本地 Docker Nacos 联调中，Gateway 发现 `knowledge.search`，`providers=1`，通过 Nacos Config 读取 mock schema，缺参校验返回 `MCP_TOOL_VALIDATION_FAILED`，并通过 Streamable HTTP `tools/call` 调用示例 MCP Server 成功。当前 Streamable HTTP client 已替换为官方 Python MCP SDK adapter，并完成本地 FastMCP 示例服务端到端烟测。
+验证结果：`python -m pytest` 通过，当前测试集 `79 passed`；本地 Docker Nacos 联调中，Gateway 发现 `knowledge.search`，`providers=1`，通过 Nacos Config 读取 mock schema，缺参校验返回 `MCP_TOOL_VALIDATION_FAILED`，并通过 Streamable HTTP `tools/call` 调用示例 MCP Server 成功。当前 Streamable HTTP client 已替换为官方 Python MCP SDK adapter，并完成本地 FastMCP 示例服务端到端烟测。
 
 结论：MVP 实现与当前 plan 的阶段 1 到阶段 11 基本一致，可以作为本地演示和公司测试环境 Nacos 参数验证前置版本。生产级接入仍需要公司测试/生产 Nacos 环境参数验证、真实业务 MCP Server、统一鉴权、生产压测、指标平台采集配置和告警阈值校准等后续工作。
 
@@ -46,7 +46,7 @@
 
 | 项目 | 当前状态 | 影响 | 建议 |
 | --- | --- | --- | --- |
-| MCP Server 自动注册到真实 Nacos | 已提供 Python 注册 helper 和命令行示例，本地 Docker Nacos 已验证；尚未嵌入真实业务 MCP Server 生命周期 | 业务服务接入时仍需在启动/关闭钩子中调用注册/注销，或接入 Nacos 心跳 | 在各业务 MCP Server 项目中集成 helper，或补 Java 版注册 helper |
+| MCP Server 自动注册到真实 Nacos | 已提供 Python 注册 helper、生命周期封装、ephemeral 心跳和命令行示例，本地 Docker Nacos 已验证；尚未嵌入真实业务 MCP Server 生命周期 | 业务服务接入时仍需在启动/关闭钩子中调用注册/注销，非 Python 服务需补语言适配 | 在各业务 MCP Server 项目中集成 helper，或补 Java 版注册 helper |
 | Nacos watch/订阅变更 | 当前 adapter 是按接口拉取，已支持手动 refresh 和可选定时 refresh，尚未实现 Nacos watch 推送 | 无法做到推送级实时感知，但可通过周期刷新满足测试环境动态发现 | 后续补 Nacos watch 机制 |
 | 灰度发布 | 设计有灰度能力，MVP 尚未实现 labels/gray 策略过滤 | 灰度路由和按标签发布暂不可用 | 在 Router 中增加 label/gray rule 配置 |
 | 租户级路由策略 | 当前权限校验支持 tenant allow，Router 尚未按 tenantMode 做复杂筛选 | 多租户专属实例场景需要扩展 | metadata 增加 tenant scope 后补 Router 过滤 |
@@ -77,7 +77,7 @@
 ## 7. 建议后续动作
 
 1. 进入外部 Nacos 测试环境联调，验证 serviceName、group、namespace、metadata 格式、鉴权和网络策略。
-2. 为业务 MCP Server 提供注册 helper 或 starter 示例，确保服务端能按模板自动注册并具备心跳/注销策略。
+2. 将注册生命周期 helper 嵌入业务 MCP Server；如业务服务非 Python，补对应语言 helper 或复用服务自身 Nacos SDK。
 3. 在测试环境开启 `catalog_refresh` 做动态发现验证，后续再补 Nacos watch 推送机制。
 4. 将 `/metrics` 和 JSONL 审计文件接入统一可观测平台，并基于样例规则校准限流、熔断、健康状态和调用失败告警。
 5. 在真实业务系统接入前，分别为知识库、审批、文档确认最终参数 schema 和响应 schema。

@@ -29,7 +29,7 @@
 - 可选主动健康检查。
 - Nacos discovery 失败后保留最后一次成功 Catalog 快照。
 - 可选定时 Catalog 刷新，无需手动调用 admin refresh。
-- MCP Server 注册到 Nacos 的 helper 和命令行示例。
+- MCP Server 注册到 Nacos 的 helper、生命周期封装和命令行示例。
 
 ## 本地运行
 
@@ -83,6 +83,49 @@ MCP Server 注册示例：
 
 - `src/mcp_gateway/examples/nacos_registration.py`
 - `examples/register_mcp_server_to_nacos.py`
+
+真实 Python MCP Server 可在启动/关闭生命周期中复用 `McpServerNacosLifecycle`：
+
+```python
+from mcp_gateway.examples.nacos_registration import (
+    McpServerNacosLifecycle,
+    McpServerRegistration,
+    NacosMcpServerRegistrar,
+    NacosRegistrationConfig,
+    knowledge_search_metadata,
+)
+
+registrar = NacosMcpServerRegistrar(NacosRegistrationConfig(endpoint="http://127.0.0.1:8848"))
+lifecycle = McpServerNacosLifecycle(
+    registrar,
+    McpServerRegistration(
+        service_name="mcp-server-knowledge",
+        ip="127.0.0.1",
+        port=18081,
+        metadata=knowledge_search_metadata(),
+    ),
+)
+
+lifecycle.start()
+# MCP Server shutdown hook:
+lifecycle.stop()
+```
+
+如果注册为 Nacos ephemeral 临时实例，可开启心跳：
+
+```python
+lifecycle = McpServerNacosLifecycle(
+    registrar,
+    McpServerRegistration(
+        service_name="mcp-server-knowledge",
+        ip="127.0.0.1",
+        port=18081,
+        metadata=knowledge_search_metadata(),
+        ephemeral=True,
+    ),
+    heartbeat_interval_seconds=5,
+)
+```
 
 注册示例 MCP Server：
 
@@ -272,7 +315,7 @@ Invoke-RestMethod `
 python -m pytest
 ```
 
-当前验证结果：`75 passed`。
+当前验证结果：`79 passed`。
 
 ## 交付说明
 
@@ -287,6 +330,7 @@ docs/codex/v1/delivery/mcp-gateway-mvp-delivery.md
 ## 待完成事项
 
 - 完成真实 Nacos 测试环境联调。
+- 将注册生命周期和 ephemeral 心跳 helper 嵌入真实 MCP Server 启动/关闭流程。
 - 对 Redis 限流、熔断共享状态做生产压测，并按公司指标平台校准告警阈值。
 - 接入真实知识库、审批、文档业务系统。
 - 接入公司审计中心/日志平台和指标平台采集配置。
