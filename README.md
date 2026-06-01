@@ -375,7 +375,7 @@ python -m pytest
 
 仍需在真实环境完成：
 
-- 公司测试/生产 Nacos 环境参数验证。
+- 公司生产 Nacos 环境参数验证。
 - 将 Python 或 Java 注册生命周期和 ephemeral 心跳 helper 嵌入真实 MCP Server。
 - 接入真实知识库、审批、文档业务系统。
 - 接入统一鉴权或权限中心。
