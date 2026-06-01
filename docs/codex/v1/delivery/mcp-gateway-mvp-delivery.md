@@ -59,7 +59,7 @@
 - 可选主动健康检查。
 - Discovery 失败保留最后一次 Catalog 快照。
 - 可选定时 Catalog 刷新。
-- MCP Server 注册 Nacos 的 Python helper、生命周期封装、ephemeral 心跳能力和命令行示例。
+- MCP Server 注册 Nacos 的 Python helper、Java helper、生命周期封装、ephemeral 心跳能力和命令行示例。
 - 本地 Docker Nacos 联调配置、示例 MCP Server 和 Nacos 专用 Gateway 配置。
 
 ### 2.2 文档产物
@@ -81,6 +81,7 @@
 
 - MCP Server 注册 helper、生命周期封装和 ephemeral 心跳能力：`src/mcp_gateway/examples/nacos_registration.py`
 - 注册命令行示例：`examples/register_mcp_server_to_nacos.py`
+- Java 注册 helper 示例：`examples/java/nacos-registration/`
 - 本地示例 MCP Server：`examples/mock_mcp_server.py`
 - 本地 Nacos compose：`docker-compose.nacos.yml`
 - 本地 Redis compose：`docker-compose.redis.yml`
@@ -208,7 +209,7 @@ python examples/register_mcp_server_to_nacos.py `
 当前本地测试结果：
 
 ```text
-79 passed
+81 passed
 ```
 
 覆盖范围包括：
@@ -221,7 +222,7 @@ python examples/register_mcp_server_to_nacos.py `
 - Nacos Config schema 发布 helper。
 - metadata parser。
 - Nacos discovery adapter。
-- MCP Server 注册 helper、生命周期封装和 ephemeral 心跳能力。
+- MCP Server 注册 helper、Java helper、生命周期封装和 ephemeral 心跳能力。
 - Catalog / Router。
 - audit 日志和 JSONL 文件审计落地。
 - metrics 指标出口，包括工具调用计数、耗时汇总和 Catalog 刷新指标。
@@ -238,7 +239,7 @@ python examples/register_mcp_server_to_nacos.py `
 
 建议对外交付时使用以下口径：
 
-> 当前版本为 MCP Gateway MVP / Nacos 联调样例版，已完成 MCP Server 注册元数据约定、Nacos 发现适配、Nacos Config schema 发布与读取、Tool Catalog、工具路由、三类 Tool mock 演示、权限、JSONL 审计落地、Prometheus `/metrics` 基础指标、告警规则样例、可插拔限流/熔断、健康检查、注册生命周期与 ephemeral 心跳示例和本地 Docker Nacos 联调。该版本可用于架构验证、本地演示和测试环境联调；生产上线前仍需完成公司测试/生产 Nacos 环境参数验证、真实业务系统接入、统一鉴权、审计中心/日志平台接入和公司指标平台采集配置。
+> 当前版本为 MCP Gateway MVP / Nacos 联调样例版，已完成 MCP Server 注册元数据约定、Nacos 发现适配、Nacos Config schema 发布与读取、Tool Catalog、工具路由、三类 Tool mock 演示、权限、JSONL 审计落地、Prometheus `/metrics` 基础指标、告警规则样例、可插拔限流/熔断、健康检查、Python/Java 注册生命周期与 ephemeral 心跳示例和本地 Docker Nacos 联调。该版本可用于架构验证、本地演示和测试环境联调；生产上线前仍需完成公司测试/生产 Nacos 环境参数验证、真实业务系统接入、统一鉴权、审计中心/日志平台接入和公司指标平台采集配置。
 
 ## 8. 待完成事项
 
@@ -247,9 +248,9 @@ python examples/register_mcp_server_to_nacos.py `
 | 待办 | 说明 | 优先级 |
 | --- | --- | --- |
 | 公司测试/生产 Nacos 环境参数验证 | 本地 Docker Nacos 已验证 discovery、schema config、健康检查和调用链路；仍需验证公司环境 endpoint、namespace、group、serviceName、鉴权和网络策略 | 高 |
-| 真实 MCP Server 注册 | 已提供 Python 注册生命周期 helper 和 ephemeral 心跳；真实业务 MCP Server 仍需在自身启动/关闭钩子中嵌入，非 Python 服务需补对应语言实现 | 高 |
+| 真实 MCP Server 注册 | 已提供 Python/Java 注册生命周期 helper 和 ephemeral 心跳示例；真实业务 MCP Server 仍需在自身启动/关闭钩子中嵌入 | 高 |
 | 真实业务 MCP Server 调用 | 本地示例 MCP Server 已验证 `tools/call`；仍需用真实业务 MCP Server endpoint 验证 | 高 |
-| 生产心跳策略 | Python helper 已支持 ephemeral 心跳；生产仍需按真实 MCP Server 语言、框架和 Nacos 策略完成嵌入与压测 | 中 |
+| 生产心跳策略 | Python/Java helper 已支持 ephemeral 心跳示例；生产仍需按真实 MCP Server 框架和 Nacos 策略完成嵌入与压测 | 中 |
 
 ### 8.2 生产化治理
 
@@ -301,7 +302,7 @@ python examples/register_mcp_server_to_nacos.py `
 
 1. 确认测试环境 Nacos `endpoint`、`namespace`、`group`、鉴权方式和网络策略。
 2. 将注册 helper 嵌入真实 MCP Server 启动/关闭生命周期。
-3. 如使用 Nacos ephemeral 实例，可复用 Python helper 心跳能力；非 Python 服务使用服务自身 Nacos SDK 或补对应语言 helper。
+3. 如使用 Nacos ephemeral 实例，可复用 Python/Java helper 心跳能力，或使用服务自身 Nacos SDK。
 4. Gateway 开启 `discovery.mode=nacos`、`nacos.enabled=true` 和 `mcp_client.mode=streamable-http`。
 5. 调用 Admin refresh/status 验证 Catalog，并用真实 MCP Server 验证 `tools/call`。
 6. 将测试环境差异回写到 `mcp-gateway-nacos-integration-guide.md`。

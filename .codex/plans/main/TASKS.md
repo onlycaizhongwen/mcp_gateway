@@ -29,3 +29,9 @@
 - 摘要：新增 Python MCP Server 注册生命周期封装，支持启动注册到 Nacos、关闭或异常退出时注销。
 - 过程文件：.codex/plans/main/mcp-server-registration-lifecycle/process.md
 - 恢复提示：后续如继续生产化，优先将该 helper 嵌入真实业务 MCP Server 或补充 Java/其他语言版本。
+
+## java-mcp-server-registration-helper
+- 状态：已完成
+- 摘要：新增 Java MCP Server Nacos 注册 helper 示例，覆盖注册、注销、ephemeral 心跳和生命周期封装。
+- 过程文件：.codex/plans/main/java-mcp-server-registration-helper/process.md
+- 恢复提示：后续如继续生产化，将 Java helper 嵌入真实业务 MCP Server，或改造为公司内部 starter。

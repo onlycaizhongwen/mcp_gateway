@@ -18,7 +18,7 @@
 | 需求 | 已完成 | 已根据用户原始需求补充需求基线。 |
 | 设计 | 已完成 | 已输出 MCP Server 自动注册 Nacos、MCP 网关动态发现与调度设计。 |
 | 计划 | 已完成 | 已基于主设计和补充方案拆分 MVP 实施计划。 |
-| 实现 | 进行中 | 已完成 Python/FastAPI MVP 骨架、mock discovery、Nacos discovery adapter、Tool Catalog、Router、HTTP API、三类演示 Tool、YAML 权限配置、工具 schema 查询/基础校验、可插拔 schema registry（内存默认，Nacos Config 可选）、官方 Python MCP SDK Streamable HTTP Client adapter、可插拔审计（日志默认，JSONL 文件可选）、Prometheus `/metrics` 基础指标、Prometheus 告警规则样例、Catalog 管理接口、admin 权限保护、可插拔限流/熔断（内存默认，Redis 可选）、本地 Docker Redis 治理联调、可选主动健康检查、可选定时 Catalog 刷新、MCP Server 注册生命周期封装和 ephemeral 心跳、本地 Docker Nacos 注册/发现/Config schema/调用联调配置和示例 MCP Server。 |
+| 实现 | 进行中 | 已完成 Python/FastAPI MVP 骨架、mock discovery、Nacos discovery adapter、Tool Catalog、Router、HTTP API、三类演示 Tool、YAML 权限配置、工具 schema 查询/基础校验、可插拔 schema registry（内存默认，Nacos Config 可选）、官方 Python MCP SDK Streamable HTTP Client adapter、可插拔审计（日志默认，JSONL 文件可选）、Prometheus `/metrics` 基础指标、Prometheus 告警规则样例、Catalog 管理接口、admin 权限保护、可插拔限流/熔断（内存默认，Redis 可选）、本地 Docker Redis 治理联调、可选主动健康检查、可选定时 Catalog 刷新、Python/Java MCP Server 注册生命周期封装和 ephemeral 心跳、本地 Docker Nacos 注册/发现/Config schema/调用联调配置和示例 MCP Server。 |
 | 追踪 | 已完成 | 已输出 trace 审查，核心 MVP 已闭环；本地 Nacos 注册、发现、Nacos Config schema、健康检查和 Streamable HTTP 调用已验证，本地 Redis 限流/熔断共享状态已验证，基础 metrics 出口、告警规则样例和 JSONL 审计落地已具备，剩余项主要是公司测试/生产 Nacos 环境参数验证、生产压测/指标平台采集配置、审计中心接入和真实业务系统对接。 |
 
 ## 变更记录
@@ -26,6 +26,7 @@
 - 2026-06-01：新增 Prometheus 告警规则样例 `deploy/prometheus/mcp-gateway-alerts.yml` 和观测接入说明 `docs/codex/v1/operations/mcp-gateway-observability.md`，覆盖错误率、限流、服务不可用、Catalog refresh 降级、健康实例数和平均延迟告警；当前全量测试 `75 passed`。
 - 2026-06-01：新增 `McpServerNacosLifecycle`，支持 Python MCP Server 在启动时注册到 Nacos、关闭或异常退出时自动注销；当时全量测试 `77 passed`。
 - 2026-06-01：为 Nacos 注册 helper 新增 ephemeral 实例心跳能力，生命周期启动后可按周期调用 Nacos beat 接口；当前全量测试 `79 passed`。
+- 2026-06-01：新增 Java MCP Server Nacos 注册 helper 示例，覆盖注册、注销、ephemeral 心跳、生命周期和 metadata 示例；当前全量测试 `81 passed`。
 - 2026-05-30：新增可插拔审计配置，默认保持日志输出，支持 `audit.mode=file` 写入 JSONL 审计文件；审计事件包含 trace/request、app/tenant、tool、结果码、耗时、路由实例和参数 key，不记录参数明文；当前全量测试 `74 passed`。
 - 2026-05-29：新增 Prometheus 文本格式 `/metrics` 指标出口，记录工具调用总数、结果码、耗时汇总和 Catalog 刷新成功/快照/实例数指标；补充 API、运行时和 metrics 单元测试，当前全量测试 `69 passed`。
 - 2026-05-29：将内存 schema registry 升级为可插拔后端，默认保留内存样例，新增 Nacos Config schema registry；`nacos://mcp-schemas/...` schema ref 可映射为 Nacos Config `dataId=...json`，并支持复用 Nacos endpoint、namespace、鉴权和超时配置。
